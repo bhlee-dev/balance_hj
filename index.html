@@ -73,7 +73,7 @@ body{display:flex;flex-direction:column;align-items:stretch}
 /* ══════════════════════════════════════════════ LAYOUT ═══ */
 #main-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
 .tab-content{display:none;opacity:0;transition:opacity .2s ease-in-out}
-.tab-content.active{flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(104px + env(safe-area-inset-bottom,0px));opacity:1}
+.tab-content.active{flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));opacity:1}
 
 /* ════════════════════════════════════════ BOTTOM NAV ═══ */
 #bottom-tabs{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:380px;height:64px;background:rgba(28,28,30,0.80);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border:1px solid rgba(255,255,255,0.08);border-radius:100px;display:flex;align-items:center;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.05)}
@@ -81,12 +81,6 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .tab-btn:active{transform:scale(0.92)}
 .tab-btn.active{color:var(--accent)}
 .tab-icon-svg{width:22px;height:22px;display:block;flex-shrink:0}
-
-/* ══════════════════════════════════════════════════ FAB ═══ */
-#fab{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom,0px));right:20px;width:56px;height:56px;border-radius:50%;background:rgba(245,245,247,0.94);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,0.60),0 1px 0 rgba(255,255,255,0.12);z-index:99;transition:transform .2s ease-in-out,box-shadow .2s ease-in-out;-webkit-tap-highlight-color:transparent}
-@media(min-width:600px){#fab{right:calc(50% - 240px + 20px)}}
-#fab:active{transform:scale(0.93);box-shadow:0 2px 12px rgba(0,0,0,0.50)}
-#fab>svg{width:24px;height:24px;flex-shrink:0;stroke:#09090B}
 
 /* ══════════════════════════════════════════════ CARDS ═══ */
 .card{background:var(--surface-1);border-radius:var(--radius-lg);padding:26px;margin:0 16px 12px;border:1px solid var(--border);box-shadow:0 2px 24px rgba(0,0,0,0.35)}
@@ -100,7 +94,6 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .btn-primary{background:var(--accent);color:#0C0C0D;height:56px;font-size:15px;width:100%;font-weight:700}
 .btn-primary:disabled{opacity:.30;cursor:not-allowed}
 .btn-sm{height:34px;padding:0 14px;font-size:13px;font-weight:500;border-radius:var(--radius-sm)}
-.btn-fixed{background:var(--surface-2);color:var(--text-sub);border:1px solid var(--border-mid)}
 .btn-ghost{background:transparent;color:var(--accent);font-size:13px;font-weight:500;padding:4px 10px;border-radius:var(--radius-sm)}
 
 /* ════════════════════════════════════════════════ PILLS ═══ */
@@ -153,10 +146,6 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .amount-pill{height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border-mid);background:var(--surface-2);color:var(--text-muted);font-size:12px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:all .2s ease-in-out;font-variant-numeric:tabular-nums}
 .amount-pill:active{transform:scale(0.96);border-color:var(--accent);color:var(--accent)}
 
-.fixed-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fixed-field{display:flex;flex-direction:column;gap:6px}
-.fixed-field-full{grid-column:1/-1}
-
 .amount-wrap{position:relative;display:flex;align-items:center}
 .amount-wrap .form-input{padding-right:36px}
 .amount-unit{position:absolute;right:16px;font-size:14px;font-weight:400;color:var(--text-muted);pointer-events:none}
@@ -165,17 +154,9 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 #edit-banner.show{display:flex}
 #edit-cancel{background:none;border:none;font-size:13px;font-weight:600;cursor:pointer;color:var(--warning);padding:4px 8px;-webkit-tap-highlight-color:transparent}
 
-.divider{display:flex;align-items:center;gap:10px;padding:12px 20px;margin:4px 0}
-.divider-line{flex:1;height:1px;background:var(--border)}
-.divider-text{font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap;letter-spacing:.08em;text-transform:uppercase}
-
 #save-btn-wrap{position:relative;overflow:hidden;border-radius:var(--radius-md);margin-top:6px}
 #save-btn{position:relative}
 .btn-check-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
-
-.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500}
-.badge-done{background:var(--accent-bg);color:var(--accent)}
-.badge-todo{background:var(--danger-bg);color:var(--danger)}
 
 /* ═══════════════════════════════════════ MONTH NAV ═══ */
 .month-nav{display:flex;align-items:center;justify-content:space-between;padding:26px 22px 14px}
@@ -229,19 +210,6 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .confirm-btns .btn{flex:1;height:50px;border-radius:var(--radius-md);font-size:15px}
 .confirm-cancel{background:var(--surface-2);color:var(--text);border:1px solid var(--border-mid)}
 .confirm-ok{background:var(--danger);color:#fff;border:none}
-
-/* ════════════════════════════ FIXED COST TOGGLE ═══ */
-.fixed-toggle{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s ease-in-out}
-.fixed-toggle:active{background:var(--surface-2)}
-.fixed-toggle-label{font-size:14px;font-weight:400;color:var(--text-sub)}
-.fixed-toggle-arrow{font-size:14px;transition:transform .2s ease-in-out;color:var(--text-muted)}
-.fixed-toggle-arrow.open{transform:rotate(180deg)}
-.fixed-detail-content{padding:0 22px 18px;display:none}
-.fixed-detail-content.open{display:block}
-.fixed-detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
-.fixed-detail-row:last-child{border-bottom:none}
-.fixed-detail-label{color:var(--text-muted)}
-.fixed-detail-value{font-weight:600;font-variant-numeric:tabular-nums;color:var(--text)}
 
 /* ════════════════════════════ ANNUAL CHART / TABLE ═══ */
 #annual-chart-wrap{padding:0 16px 12px;overflow-x:auto;position:relative}
@@ -330,64 +298,7 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 
     <!-- ==================== 기록 탭 ==================== -->
     <div id="tab-record" class="tab-content">
-      <div style="padding:12px 16px 0">
-        <!-- 고정비 섹션 -->
-        <div style="margin-bottom:4px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:13px;color:var(--text-muted);font-weight:500">이번 달 고정비</span>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span id="fixed-badge"></span>
-              <button class="btn-ghost" id="prev-month-btn" type="button">지난달과 같아요</button>
-            </div>
-          </div>
-          <div class="card" style="margin:0;background:var(--fixed-bg)">
-            <div class="fixed-grid">
-              <div class="fixed-field">
-                <div class="form-label">관리비 (원)</div>
-                <div class="amount-wrap">
-                  <input class="form-input select-on-focus" id="fixed-mgmt" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()">
-                  <span class="amount-unit">원</span>
-                </div>
-              </div>
-              <div class="fixed-field">
-                <div class="form-label">도시가스 (원)</div>
-                <div class="amount-wrap">
-                  <input class="form-input select-on-focus" id="fixed-gas" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()">
-                  <span class="amount-unit">원</span>
-                </div>
-              </div>
-              <div class="fixed-field">
-                <div class="form-label">수도요금 (원)</div>
-                <div class="amount-wrap">
-                  <input class="form-input select-on-focus" id="fixed-water" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()">
-                  <span class="amount-unit">원</span>
-                </div>
-              </div>
-              <div class="fixed-field">
-                <div class="form-label">세금 항목명</div>
-                <input class="form-input" id="fixed-tax-label" type="text" placeholder="예: 자동차세 (없으면 빈칸)">
-              </div>
-              <div class="fixed-field fixed-field-full">
-                <div class="form-label">세금 금액 (원)</div>
-                <div class="amount-wrap">
-                  <input class="form-input select-on-focus" id="fixed-tax-amount" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()" disabled>
-                  <span class="amount-unit">원</span>
-                </div>
-              </div>
-            </div>
-            <div style="margin-top:12px">
-              <button class="btn btn-sm btn-fixed" id="fixed-save-btn" type="button" style="width:100%">고정비 저장</button>
-              <div id="fixed-error" class="form-error" style="margin-top:6px;display:none"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 구분선 -->
-        <div class="divider" style="margin:12px 0">
-          <div class="divider-line"></div>
-          <span class="divider-text">오늘의 지출</span>
-          <div class="divider-line"></div>
-        </div>
+      <div style="padding:24px 16px 0">
 
         <!-- 수정 모드 배너 -->
         <div id="edit-banner">
@@ -470,23 +381,6 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
         <div class="summary-card fixed-card"><div class="summary-card-label">고정비</div><div class="summary-card-amount num" id="m-fixed">0원</div></div>
       </div>
 
-      <!-- 고정비 상세 토글 -->
-      <div class="card" style="padding:0">
-        <div class="fixed-toggle" id="fixed-toggle-btn">
-          <span class="fixed-toggle-label">고정비 상세 보기</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn btn-ghost" id="fixed-edit-btn" type="button" style="padding:2px 8px;font-size:12px">수정</button>
-            <span class="fixed-toggle-arrow" id="fixed-arrow">∨</span>
-          </div>
-        </div>
-        <div class="fixed-detail-content" id="fixed-detail-content">
-          <div class="fixed-detail-row"><span class="fixed-detail-label">관리비</span><span class="fixed-detail-value num" id="fd-mgmt">—</span></div>
-          <div class="fixed-detail-row"><span class="fixed-detail-label">도시가스</span><span class="fixed-detail-value num" id="fd-gas">—</span></div>
-          <div class="fixed-detail-row"><span class="fixed-detail-label">수도요금</span><span class="fixed-detail-value num" id="fd-water">—</span></div>
-          <div class="fixed-detail-row" id="fd-tax-row"><span class="fixed-detail-label" id="fd-tax-label">세금</span><span class="fixed-detail-value num" id="fd-tax">—</span></div>
-        </div>
-      </div>
-
       <!-- 카테고리 바 차트 -->
       <div class="section-header">카테고리별 지출</div>
       <div class="cat-chart" id="monthly-cat-chart"></div>
@@ -547,11 +441,6 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
     </button>
   </nav>
 
-  <!-- FAB -->
-  <button id="fab" type="button" aria-label="지출 추가">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </button>
-
   <!-- 액션 시트 -->
   <div id="action-sheet-overlay">
     <div id="action-sheet">
@@ -592,8 +481,8 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 // ====================================================
 // 상수
 // ====================================================
-const CATEGORY_EMOJI = { '식비':'🍚', '교통':'🚇', '생활':'🏠', '의료':'💊', '여가':'🎬', '기타':'📦' };
-const CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '기타'];
+const CATEGORY_EMOJI = { '식비':'🍚', '교통':'🚇', '생활':'🏠', '의료':'💊', '여가':'🎬', '고정비':'🏢', '기타':'📦' };
+const CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
 const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycby8rKMnV6cwkA5ScyjXkzVLzKCWECyirdg03_79USjKd0jzoEW7AF8qz77KpsPuB6H0/exec';
@@ -925,8 +814,6 @@ function initRecordTab() {
   updateUserButtons();
   updateDatePills();
   updateItemSuggestions();
-  loadFixedSection();
-  loadPrevMonthFixed();
 }
 
 function buildCategoryGrid() {
@@ -978,55 +865,6 @@ function updateItemSuggestions() {
   var datalist = document.getElementById('item-suggestions');
   var items = getRecentItems(state.selectedUser);
   datalist.innerHTML = items.map(function(i){ return '<option value="' + escHtml(i) + '">'; }).join('');
-}
-
-var _prevMonthFixed = null;
-async function loadPrevMonthFixed() {
-  var now = new Date();
-  try {
-    var res = await callAPI('getPrevMonthFixedExpense', {year: now.getFullYear(), month: now.getMonth()+1});
-    _prevMonthFixed = (res.success && res.data.exists) ? res.data : null;
-    var btn = document.getElementById('prev-month-btn');
-    btn.disabled = !_prevMonthFixed;
-    btn.style.opacity = _prevMonthFixed ? '1' : '0.4';
-  } catch(e) { _prevMonthFixed = null; }
-}
-
-async function loadFixedSection() {
-  var now = new Date();
-  var year = now.getFullYear(), month = now.getMonth()+1;
-  try {
-    var res = await callAPI('getFixedExpense', {year: year, month: month});
-    if (res.success) {
-      var d = res.data;
-      setFixedInputs(d);
-      var badge = document.getElementById('fixed-badge');
-      if (d.exists) {
-        badge.innerHTML = '<span class="badge badge-done">✓ 완료</span>';
-      } else {
-        badge.innerHTML = '<span class="badge badge-todo">미입력</span>';
-      }
-    }
-  } catch(e) {}
-  // tax_label 감지
-  document.getElementById('fixed-tax-label').addEventListener('input', onTaxLabelInput);
-}
-
-function setFixedInputs(d) {
-  document.getElementById('fixed-mgmt').value = d.management_fee > 0 ? d.management_fee.toLocaleString('ko-KR') : '';
-  document.getElementById('fixed-gas').value = d.gas > 0 ? d.gas.toLocaleString('ko-KR') : '';
-  document.getElementById('fixed-water').value = d.water > 0 ? d.water.toLocaleString('ko-KR') : '';
-  document.getElementById('fixed-tax-label').value = d.tax_label || '';
-  var taxAmtInput = document.getElementById('fixed-tax-amount');
-  taxAmtInput.value = d.tax_amount > 0 ? d.tax_amount.toLocaleString('ko-KR') : '';
-  taxAmtInput.disabled = !(d.tax_label && d.tax_label.trim());
-}
-
-function onTaxLabelInput() {
-  var hasLabel = this.value.trim().length > 0;
-  var taxAmtInput = document.getElementById('fixed-tax-amount');
-  taxAmtInput.disabled = !hasLabel;
-  if (!hasLabel) { taxAmtInput.value = ''; }
 }
 
 // 폼 관련 유효성 검사 & 인라인 에러
@@ -1213,41 +1051,6 @@ function cancelEditMode() {
   showTab(tab);
 }
 
-// 고정비 저장
-async function onSaveFixed() {
-  var now = new Date();
-  var year = now.getFullYear(), month = now.getMonth()+1;
-  var data = {
-    management_fee: parseMoney(document.getElementById('fixed-mgmt').value),
-    gas: parseMoney(document.getElementById('fixed-gas').value),
-    water: parseMoney(document.getElementById('fixed-water').value),
-    tax_label: document.getElementById('fixed-tax-label').value.trim(),
-    tax_amount: parseMoney(document.getElementById('fixed-tax-amount').value)
-  };
-  if (!data.tax_label) data.tax_amount = 0;
-
-  var btn = document.getElementById('fixed-save-btn');
-  btn.disabled = true; btn.textContent = '저장 중...';
-  var errEl = document.getElementById('fixed-error');
-  errEl.style.display = 'none';
-
-  try {
-    var res = await callAPI('saveFixedExpense', {year: year, month: month, data: data}, 'POST');
-    if (res && res.success) {
-      invalidateCached(year, month);
-      btn.textContent = '✓ 저장 완료';
-      document.getElementById('fixed-badge').innerHTML = '<span class="badge badge-done">✓ 완료</span>';
-      setTimeout(function() { btn.disabled = false; btn.textContent = '고정비 저장'; }, 2000);
-    } else {
-      errEl.textContent = (res && res.error) || '저장 실패'; errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = '고정비 저장';
-    }
-  } catch(e) {
-    errEl.textContent = '저장 실패. 다시 시도해주세요.'; errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '고정비 저장';
-  }
-}
-
 // ====================================================
 // 월간 탭
 // ====================================================
@@ -1312,19 +1115,6 @@ function renderMonthlySummary(s) {
   document.getElementById('m-total').textContent = formatMoney(s.total);
   document.getElementById('m-living').textContent = formatMoney(s.livingTotal);
   document.getElementById('m-fixed').textContent = formatMoney(s.fixedTotal);
-
-  // 고정비 상세
-  var fd = s.fixedDetail || {};
-  document.getElementById('fd-mgmt').textContent = fd.management_fee > 0 ? formatMoney(fd.management_fee) : '—';
-  document.getElementById('fd-gas').textContent = fd.gas > 0 ? formatMoney(fd.gas) : '—';
-  document.getElementById('fd-water').textContent = fd.water > 0 ? formatMoney(fd.water) : '—';
-  if (!fd.tax_label) {
-    document.getElementById('fd-tax-label').textContent = '세금';
-    document.getElementById('fd-tax').textContent = '—';
-  } else {
-    document.getElementById('fd-tax-label').textContent = escHtml(fd.tax_label);
-    document.getElementById('fd-tax').textContent = fd.tax_amount > 0 ? formatMoney(fd.tax_amount) : '—';
-  }
 
   // 카테고리 바 차트
   var cats = s.byCategory || {};
@@ -1556,12 +1346,6 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() { showTab(this.dataset.tab); });
   });
 
-  // FAB
-  document.getElementById('fab').addEventListener('click', function() {
-    showTab('record');
-    setTimeout(function() { document.getElementById('expense-item').focus(); }, 200);
-  });
-
   // 오프라인 바
   document.getElementById('offline-bar').addEventListener('click', retrySendPending);
 
@@ -1661,26 +1445,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // 수정 취소
   document.getElementById('edit-cancel').addEventListener('click', cancelEditMode);
 
-  // 고정비 저장
-  document.getElementById('fixed-save-btn').addEventListener('click', onSaveFixed);
-
-  // 고정비 필드 실시간 쉼표
-  ['fixed-mgmt','fixed-gas','fixed-water','fixed-tax-amount'].forEach(function(id) {
-    document.getElementById(id).addEventListener('input', function() {
-      var raw = parseMoney(this.value);
-      var clamped = clampAmount(raw);
-      this.value = clamped > 0 ? clamped.toLocaleString('ko-KR') : '';
-    });
-  });
-
-  // 이전달과 같아요
-  document.getElementById('prev-month-btn').addEventListener('click', function() {
-    if (_prevMonthFixed) setFixedInputs(_prevMonthFixed);
-  });
-
-  // tax_label
-  document.getElementById('fixed-tax-label').addEventListener('input', onTaxLabelInput);
-
   // 월간 네비
   document.getElementById('monthly-prev').addEventListener('click', function() {
     if (state.monthlyMonth === 1) { state.monthlyYear--; state.monthlyMonth = 12; }
@@ -1693,23 +1457,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (state.monthlyMonth === 12) { state.monthlyYear++; state.monthlyMonth = 1; }
     else state.monthlyMonth++;
     loadMonthlyData();
-  });
-
-  // 고정비 토글
-  document.getElementById('fixed-toggle-btn').addEventListener('click', function(e) {
-    if (e.target.id === 'fixed-edit-btn' || e.target.closest('#fixed-edit-btn')) return;
-    var content = document.getElementById('fixed-detail-content');
-    var arrow = document.getElementById('fixed-arrow');
-    content.classList.toggle('open');
-    arrow.classList.toggle('open');
-  });
-
-  // 고정비 수정 버튼
-  document.getElementById('fixed-edit-btn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    state.returnTab = 'monthly';
-    showTab('record');
-    setTimeout(function() { document.getElementById('fixed-mgmt').scrollIntoView({behavior:'smooth'}); }, 200);
   });
 
   // 연간 네비
