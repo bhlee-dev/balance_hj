@@ -869,6 +869,13 @@ function showTab(tabName) {
 // ====================================================
 // 홈 탭
 // ====================================================
+function handleAuthFailure() {
+  localStorage.removeItem('app_pin');
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-overlay').classList.add('show');
+  setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+}
+
 async function loadHomeData() {
   var now = new Date();
   var year = now.getFullYear(), month = now.getMonth() + 1;
@@ -883,21 +890,32 @@ async function loadHomeData() {
   if (!cachedSummary) renderHomeSkeleton();
 
   try {
-    var [summary, recentRes] = await Promise.all([
+    var results = await Promise.allSettled([
       cachedSummary ? Promise.resolve(cachedSummary) : callAPI('getMonthlySummary', {year: year, month: month}),
       cachedRecent ? Promise.resolve({ success: true, data: cachedRecent }) : callAPI('getRecentExpenses', {limit: 10})
     ]);
-    if (summary.success) {
+
+    var summary = results[0].status === 'fulfilled' ? results[0].value : null;
+    var recentRes = results[1].status === 'fulfilled' ? results[1].value : null;
+
+    if ((summary && summary.error === '인증 실패') || (recentRes && recentRes.error === '인증 실패')) {
+      handleAuthFailure();
+      return;
+    }
+
+    if (summary && summary.success) {
       setCached(summaryKey, summary);
       renderHomeSummary(summary);
     } else {
-      _retryFns['home'] = loadHomeData;
-      renderLoadError('home-recent-list', 'home-total', 'home');
-      return;
+      document.getElementById('home-total').textContent = '-';
     }
-    if (recentRes.success) {
+
+    if (recentRes && recentRes.success) {
       setCached(recentKey, recentRes.data);
       renderHomeRecent(recentRes.data);
+    } else {
+      _retryFns['home'] = loadHomeData;
+      renderLoadError('home-recent-list', null, 'home');
     }
   } catch(e) {
     console.error('홈 데이터 로드 실패', e);
@@ -1301,20 +1319,29 @@ async function loadMonthlyData() {
   if (!cached) renderMonthlySkeleton();
 
   try {
-    var [summary, expRes] = await Promise.all([
+    var results = await Promise.allSettled([
       cached ? Promise.resolve(cached) : callAPI('getMonthlySummary', {year: year, month: month}),
       cachedExp ? Promise.resolve({ success: true, data: cachedExp }) : callAPI('getExpenses', {year: year, month: month})
     ]);
-    if (summary.success) {
+
+    var summary = results[0].status === 'fulfilled' ? results[0].value : null;
+    var expRes = results[1].status === 'fulfilled' ? results[1].value : null;
+
+    if ((summary && summary.error === '인증 실패') || (expRes && expRes.error === '인증 실패')) {
+      handleAuthFailure();
+      return;
+    }
+
+    if (summary && summary.success) {
       setCached(summaryKey, summary);
       renderMonthlySummary(summary);
     }
-    if (expRes.success) {
+    if (expRes && expRes.success) {
       setCached(expKey, expRes.data);
       renderMonthlyExpenses(expRes.data);
     } else {
       _retryFns['monthly'] = loadMonthlyData;
-      renderLoadError('monthly-expense-list', 'm-total', 'monthly');
+      renderLoadError('monthly-expense-list', summary && summary.success ? null : 'm-total', 'monthly');
     }
   } catch(e) {
     console.error('월간 로드 실패', e);
@@ -1441,6 +1468,10 @@ async function loadAnnualData() {
 
   try {
     var summary = cached || await callAPI('getYearlySummary', {year: year});
+    if (summary && summary.error === '인증 실패') {
+      handleAuthFailure();
+      return;
+    }
     if (summary.success) {
       setCached(key, summary);
       renderAnnualSummary(summary);
