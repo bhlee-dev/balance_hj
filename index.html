@@ -103,14 +103,6 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .btn-fixed{background:var(--fixed);color:#fff}
 .btn-ghost{background:transparent;color:var(--primary);font-size:13px;font-weight:600;padding:4px 8px;border-radius:var(--radius-sm)}
 
-/* 분담 바 */
-.split-bar-wrap{margin:12px 0 4px}
-.split-bar{height:10px;border-radius:999px;overflow:hidden;display:flex}
-.split-bar-husband{background:var(--husband);transition:width 400ms ease}
-.split-bar-wife{background:var(--wife);flex:1}
-.split-labels{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--text-muted)}
-.split-label{display:flex;align-items:center;gap:4px}
-.split-dot{width:8px;height:8px;border-radius:50%}
 
 /* 사용자 pill */
 .user-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
@@ -344,25 +336,6 @@ textarea.form-input{height:auto;padding:12px;resize:none;line-height:1.5}
         </div>
       </div>
 
-      <div class="card" id="home-split-card">
-        <div class="split-bar-wrap">
-          <div class="split-bar">
-            <div class="split-bar-husband" id="home-split-husband-bar" style="width:50%"></div>
-            <div class="split-bar-wife"></div>
-          </div>
-          <div class="split-labels">
-            <div class="split-label">
-              <div class="split-dot" style="background:var(--husband)"></div>
-              <span id="home-husband-label" class="num">남편 0원 50%</span>
-            </div>
-            <div class="split-label">
-              <div class="split-dot" style="background:var(--wife)"></div>
-              <span id="home-wife-label" class="num">아내 0원 50%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="section-header">최근 지출</div>
       <div class="card" style="padding:0 16px">
         <div id="home-recent-list"></div>
@@ -509,25 +482,6 @@ textarea.form-input{height:auto;padding:12px;resize:none;line-height:1.5}
         <div class="summary-card total-card"><div class="summary-card-label">총지출</div><div class="summary-card-amount num" id="m-total">0원</div></div>
         <div class="summary-card living-card"><div class="summary-card-label">생활비</div><div class="summary-card-amount num" id="m-living">0원</div></div>
         <div class="summary-card fixed-card"><div class="summary-card-label">고정비</div><div class="summary-card-amount num" id="m-fixed">0원</div></div>
-      </div>
-
-      <div class="card" id="monthly-split-card">
-        <div class="split-bar-wrap">
-          <div class="split-bar">
-            <div class="split-bar-husband" id="monthly-split-bar" style="width:50%"></div>
-            <div class="split-bar-wife"></div>
-          </div>
-          <div class="split-labels">
-            <div class="split-label">
-              <div class="split-dot" style="background:var(--husband)"></div>
-              <span id="monthly-husband-label" class="num">남편 0원</span>
-            </div>
-            <div class="split-label">
-              <div class="split-dot" style="background:var(--wife)"></div>
-              <span id="monthly-wife-label" class="num">아내 0원</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 고정비 상세 토글 -->
@@ -954,7 +908,6 @@ function renderHomeSummary(s) {
   document.getElementById('home-total').textContent = formatMoney(s.total);
   document.getElementById('home-living-label').textContent = '생활비 ' + formatMoney(s.livingTotal);
   document.getElementById('home-fixed-label').textContent = '고정비 ' + formatMoney(s.fixedTotal);
-  updateSplitBar('home-split-husband-bar', 'home-husband-label', 'home-wife-label', s.husbandTotal, s.wifeTotal, true);
 }
 
 function renderHomeRecent(data) {
@@ -976,17 +929,6 @@ function renderHomeRecent(data) {
       '</div>' +
     '</div>';
   }).join('');
-}
-
-function updateSplitBar(barId, husbandLabelId, wifeLabelId, husbandAmt, wifeAmt, showPercent) {
-  var total = husbandAmt + wifeAmt;
-  var pct = total > 0 ? Math.round(husbandAmt / total * 100) : 50;
-  var bar = document.getElementById(barId);
-  if (bar) bar.style.width = pct + '%';
-  var hLabel = document.getElementById(husbandLabelId);
-  var wLabel = document.getElementById(wifeLabelId);
-  if (hLabel) hLabel.textContent = '남편 ' + formatMoney(husbandAmt) + (showPercent ? ' ' + pct + '%' : '');
-  if (wLabel) wLabel.textContent = '아내 ' + formatMoney(wifeAmt) + (showPercent ? ' ' + (100-pct) + '%' : '');
 }
 
 // ====================================================
@@ -1384,7 +1326,6 @@ function renderMonthlySummary(s) {
   document.getElementById('m-total').textContent = formatMoney(s.total);
   document.getElementById('m-living').textContent = formatMoney(s.livingTotal);
   document.getElementById('m-fixed').textContent = formatMoney(s.fixedTotal);
-  updateSplitBar('monthly-split-bar', 'monthly-husband-label', 'monthly-wife-label', s.husbandTotal, s.wifeTotal, false);
 
   // 고정비 상세
   var fd = s.fixedDetail || {};
