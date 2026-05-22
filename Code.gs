@@ -67,12 +67,66 @@ function clampAmount(n) {
 }
 
 // ====================================================
-// 웹앱 진입점
+// PIN 설정 (최초 1회, GAS 편집기에서 직접 실행)
+// ====================================================
+function setupPin() {
+  // 아래 '0000' 을 원하는 PIN으로 교체 후 실행
+  PropertiesService.getScriptProperties().setProperty('APP_PIN', '0000');
+  Logger.log('APP_PIN 저장 완료');
+}
+
+function verifyPin(pin) {
+  var stored = PropertiesService.getScriptProperties().getProperty('APP_PIN');
+  return stored != null && pin === stored;
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ====================================================
+// 웹앱 진입점 — GET (조회)
 // ====================================================
 function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('가계부')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  var p = e.parameter || {};
+  if (!verifyPin(p.pin || '')) return jsonResponse({ success: false, error: '인증 실패' });
+
+  var action = p.action || '';
+  try {
+    if (action === 'getMonthlySummary')       return jsonResponse(getMonthlySummary(+p.year, +p.month));
+    if (action === 'getRecentExpenses')        return jsonResponse(getRecentExpenses(+(p.limit || 10)));
+    if (action === 'getExpenses')              return jsonResponse(getExpenses(+p.year, +p.month));
+    if (action === 'getFixedExpense')          return jsonResponse(getFixedExpense(+p.year, +p.month));
+    if (action === 'getPrevMonthFixedExpense') return jsonResponse(getPrevMonthFixedExpense(+p.year, +p.month));
+    if (action === 'getYearlySummary')         return jsonResponse(getYearlySummary(+p.year));
+    if (action === 'getAvailableYears')        return jsonResponse(getAvailableYears());
+    return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
+  } catch(err) {
+    return jsonResponse({ success: false, error: err.message });
+  }
+}
+
+// ====================================================
+// 웹앱 진입점 — POST (쓰기/수정/삭제)
+// ====================================================
+function doPost(e) {
+  var payload;
+  try { payload = JSON.parse(e.postData.contents); }
+  catch(err) { return jsonResponse({ success: false, error: '요청 파싱 실패' }); }
+
+  if (!verifyPin(payload.pin || '')) return jsonResponse({ success: false, error: '인증 실패' });
+
+  var action = payload.action || '';
+  try {
+    if (action === 'addExpense')       return jsonResponse(addExpense(payload.data));
+    if (action === 'updateExpense')    return jsonResponse(updateExpense(payload.rowIndex, payload.data));
+    if (action === 'deleteExpense')    return jsonResponse(deleteExpense(payload.rowIndex));
+    if (action === 'saveFixedExpense') return jsonResponse(saveFixedExpense(payload.year, payload.month, payload.data));
+    return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
+  } catch(err) {
+    return jsonResponse({ success: false, error: err.message });
+  }
 }
 
 // ====================================================

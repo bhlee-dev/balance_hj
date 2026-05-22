@@ -46,9 +46,10 @@
   }
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-body{display:flex;flex-direction:column;align-items:center}
-#app{width:100%;max-width:430px;min-height:100vh;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+html,body{background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;align-items:stretch}
+#app{width:100%;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;position:relative;background:var(--bg);flex-shrink:0}
+@media(min-width:600px){body{align-items:center}#app{max-width:480px}}
 
 /* 오프라인 알림 바 */
 #offline-bar{display:none;background:var(--warning);color:#1A1A1A;font-size:13px;padding:10px 16px;text-align:center;cursor:pointer;font-weight:500;position:sticky;top:0;z-index:200}
@@ -57,25 +58,29 @@ body{display:flex;flex-direction:column;align-items:center}
 /* 상단 헤더 */
 #app-header{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:100;flex-shrink:0}
 #app-header.with-offline{top:40px}
+#header-title-wrap{display:flex;align-items:baseline;gap:5px}
 #header-title{font-size:16px;font-weight:700;color:var(--text)}
+#header-version{font-size:10px;font-weight:400;color:var(--text-muted)}
 #header-month{font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums}
 
 /* 메인 콘텐츠 */
-#main-content{flex:1;overflow-y:auto;padding-bottom:80px}
+#main-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
 
 /* 탭 콘텐츠 */
 .tab-content{display:none;opacity:0;transition:opacity 150ms ease-out}
-.tab-content.active{display:block;opacity:1}
+.tab-content.active{flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));opacity:1}
 
 /* 하단 탭바 */
-#bottom-tabs{height:60px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100}
-.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--text-muted);font-size:10px;font-weight:500;cursor:pointer;transition:transform 100ms,color 100ms;padding:4px 0;-webkit-tap-highlight-color:transparent}
+#bottom-tabs{height:calc(60px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;position:fixed;bottom:0;left:0;right:0;width:100%;z-index:100}
+@media(min-width:600px){#bottom-tabs{left:50%;right:auto;transform:translateX(-50%);max-width:480px}}
+.tab-btn{height:60px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--text-muted);font-size:10px;font-weight:500;cursor:pointer;transition:transform 100ms,color 100ms;padding:4px 0;-webkit-tap-highlight-color:transparent}
 .tab-btn:active{transform:scale(0.95)}
 .tab-btn.active{color:var(--primary);transform:translateY(-2px)}
 .tab-btn .tab-icon{font-size:20px;line-height:1}
 
 /* FAB */
-#fab{position:fixed;bottom:76px;right:calc(50% - 215px + 20px);width:56px;height:56px;border-radius:50%;background:var(--primary);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(45,106,79,.3);z-index:99;transition:transform 100ms;-webkit-tap-highlight-color:transparent;max-right:calc(50% - 215px + 20px)}
+#fab{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(45,106,79,.3);z-index:99;transition:transform 100ms;-webkit-tap-highlight-color:transparent}
+@media(min-width:600px){#fab{right:calc(50% - 240px + 20px)}}
 #fab:active{transform:scale(0.93)}
 #fab svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 
@@ -296,6 +301,19 @@ textarea.form-input{height:auto;padding:12px;resize:none;line-height:1.5}
 
 /* 입력 포커스 시 선택 */
 .select-on-focus::selection{background:var(--primary-bg)}
+
+/* PIN 오버레이 */
+#pin-overlay{display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:0}
+#pin-overlay.show{display:flex}
+#pin-box{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 32px;background:var(--surface);border-radius:var(--radius-lg);width:min(320px,90vw)}
+#pin-logo{font-size:32px;margin-bottom:4px}
+#pin-title{font-size:20px;font-weight:700;color:var(--text)}
+#pin-subtitle{font-size:14px;color:var(--text-muted)}
+#pin-input{width:100%;text-align:center;font-size:24px;letter-spacing:10px;padding:14px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+#pin-input:focus{border-color:var(--primary)}
+#pin-error{font-size:13px;color:var(--danger);display:none}
+#pin-submit{width:100%;height:52px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+#pin-submit:disabled{opacity:0.6}
 </style>
 </head>
 <body>
@@ -305,7 +323,10 @@ textarea.form-input{height:auto;padding:12px;resize:none;line-height:1.5}
 
   <!-- 상단 헤더 -->
   <header id="app-header">
-    <span id="header-title">가계부</span>
+    <div id="header-title-wrap">
+      <span id="header-title">가계부</span>
+      <span id="header-version">v7</span>
+    </div>
     <span id="header-month" class="num"></span>
   </header>
 
@@ -614,7 +635,20 @@ textarea.form-input{height:auto;padding:12px;resize:none;line-height:1.5}
   </div>
 </div>
 
+<!-- PIN 인증 오버레이 -->
+<div id="pin-overlay">
+  <div id="pin-box">
+    <div id="pin-logo">🏠</div>
+    <div id="pin-title">가계부</div>
+    <div id="pin-subtitle">PIN을 입력해주세요</div>
+    <input id="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+    <div id="pin-error">PIN이 올바르지 않습니다.</div>
+    <button id="pin-submit" type="button">확인</button>
+  </div>
+</div>
+
 <script>
+
 // ====================================================
 // 상수
 // ====================================================
@@ -622,6 +656,7 @@ const CATEGORY_EMOJI = { '식비':'🍚', '교통':'🚇', '생활':'🏠', '의
 const CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '기타'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
+const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz9arHQWVMaLO371ttH4oNtB758TICVdDyRWmYMgl67A0uQKdVuvkF2xd6KSzUBWmrQ/exec';
 
 // ====================================================
 // 상태
@@ -711,14 +746,26 @@ function invalidateCached(year, month) {
 }
 
 // ====================================================
-// GAS 호출 래퍼
+// 백엔드 API 호출 래퍼
 // ====================================================
-function callGAS(fnName) {
-  var args = Array.prototype.slice.call(arguments, 1);
-  return new Promise(function(resolve, reject) {
-    var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-    runner[fnName].apply(runner, args);
-  });
+function getStoredPin() {
+  return localStorage.getItem('app_pin') || '';
+}
+
+// GET: 조회 / POST: 쓰기·수정·삭제 (text/plain으로 CORS preflight 방지)
+function callAPI(action, params, method) {
+  var pin = getStoredPin();
+  if (method === 'POST') {
+    return fetch(GAS_BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(Object.assign({ action: action, pin: pin }, params)),
+      redirect: 'follow'
+    }).then(function(r) { return r.json(); });
+  }
+  var qs = new URLSearchParams(Object.assign({ action: action, pin: pin }, params || {})).toString();
+  return fetch(GAS_BACKEND_URL + '?' + qs, { redirect: 'follow' })
+    .then(function(r) { return r.json(); });
 }
 
 // ====================================================
@@ -769,7 +816,7 @@ async function retrySendPending() {
   var remaining = [];
   for (var i = 0; i < pending.length; i++) {
     try {
-      var res = await callGAS('addExpense', pending[i]);
+      var res = await callAPI('addExpense', {data: pending[i]}, 'POST');
       if (!res.success) remaining.push(pending[i]);
     } catch(e) {
       remaining.push(pending[i]);
@@ -825,8 +872,8 @@ async function loadHomeData() {
 
   try {
     var [summary, recentRes] = await Promise.all([
-      cachedSummary ? Promise.resolve(cachedSummary) : callGAS('getMonthlySummary', year, month),
-      cachedRecent ? Promise.resolve({ success: true, data: cachedRecent }) : callGAS('getRecentExpenses', 10)
+      cachedSummary ? Promise.resolve(cachedSummary) : callAPI('getMonthlySummary', {year: year, month: month}),
+      cachedRecent ? Promise.resolve({ success: true, data: cachedRecent }) : callAPI('getRecentExpenses', {limit: 10})
     ]);
     if (summary.success) {
       setCached(summaryKey, summary);
@@ -955,7 +1002,7 @@ var _prevMonthFixed = null;
 async function loadPrevMonthFixed() {
   var now = new Date();
   try {
-    var res = await callGAS('getPrevMonthFixedExpense', now.getFullYear(), now.getMonth()+1);
+    var res = await callAPI('getPrevMonthFixedExpense', {year: now.getFullYear(), month: now.getMonth()+1});
     _prevMonthFixed = (res.success && res.data.exists) ? res.data : null;
     var btn = document.getElementById('prev-month-btn');
     btn.disabled = !_prevMonthFixed;
@@ -967,7 +1014,7 @@ async function loadFixedSection() {
   var now = new Date();
   var year = now.getFullYear(), month = now.getMonth()+1;
   try {
-    var res = await callGAS('getFixedExpense', year, month);
+    var res = await callAPI('getFixedExpense', {year: year, month: month});
     if (res.success) {
       var d = res.data;
       setFixedInputs(d);
@@ -1053,9 +1100,9 @@ async function onSaveExpense() {
   try {
     var res;
     if (state.editingRowIndex) {
-      res = await callGAS('updateExpense', state.editingRowIndex, data);
+      res = await callAPI('updateExpense', {rowIndex: state.editingRowIndex, data: data}, 'POST');
     } else {
-      res = await callGAS('addExpense', data);
+      res = await callAPI('addExpense', {data: data}, 'POST');
     }
 
     if (res && res.success) {
@@ -1203,7 +1250,7 @@ async function onSaveFixed() {
   errEl.style.display = 'none';
 
   try {
-    var res = await callGAS('saveFixedExpense', year, month, data);
+    var res = await callAPI('saveFixedExpense', {year: year, month: month, data: data}, 'POST');
     if (res && res.success) {
       invalidateCached(year, month);
       btn.textContent = '✓ 저장 완료';
@@ -1237,8 +1284,8 @@ async function loadMonthlyData() {
 
   try {
     var [summary, expRes] = await Promise.all([
-      cached ? Promise.resolve(cached) : callGAS('getMonthlySummary', year, month),
-      cachedExp ? Promise.resolve({ success: true, data: cachedExp }) : callGAS('getExpenses', year, month)
+      cached ? Promise.resolve(cached) : callAPI('getMonthlySummary', {year: year, month: month}),
+      cachedExp ? Promise.resolve({ success: true, data: cachedExp }) : callAPI('getExpenses', {year: year, month: month})
     ]);
     if (summary.success) {
       setCached(summaryKey, summary);
@@ -1340,7 +1387,7 @@ function closeActionSheet() {
 }
 
 async function doDeleteExpense(rowIndex, name) {
-  var res = await callGAS('deleteExpense', rowIndex);
+  var res = await callAPI('deleteExpense', {rowIndex: rowIndex}, 'POST');
   if (res && res.success) {
     invalidateCached(state.monthlyYear, state.monthlyMonth);
     invalidateCached(state.currentYear, state.currentMonth);
@@ -1357,7 +1404,7 @@ async function loadAnnualData() {
 
   if (state.availableYears.length === 0) {
     try {
-      var yr = await callGAS('getAvailableYears');
+      var yr = await callAPI('getAvailableYears', {});
       if (yr.success) state.availableYears = yr.years;
     } catch(e) { state.availableYears = [year]; }
   }
@@ -1368,7 +1415,7 @@ async function loadAnnualData() {
   if (!cached) renderAnnualSkeleton();
 
   try {
-    var summary = cached || await callGAS('getYearlySummary', year);
+    var summary = cached || await callAPI('getYearlySummary', {year: year});
     if (summary.success) {
       setCached(key, summary);
       renderAnnualSummary(summary);
@@ -1678,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (found) { openEditMode(found, 'monthly'); return; }
     }
     // 캐시 없으면 GAS 호출
-    callGAS('getExpenses', state.monthlyYear, state.monthlyMonth).then(function(res) {
+    callAPI('getExpenses', {year: state.monthlyYear, month: state.monthlyMonth}).then(function(res) {
       if (res.success) {
         var found = res.data.find(function(e){ return e.rowIndex === _actionData.rowIndex; });
         if (found) openEditMode(found, 'monthly');
@@ -1705,15 +1752,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 카테고리 저장 시 localStorage 업데이트 (저장 성공 후 처리됨)
 
-  // 초기 로드
-  checkOfflineBar();
-  showTab('home');
+  // PIN 인증 후 앱 시작
+  function startApp() {
+    document.getElementById('pin-overlay').classList.remove('show');
+    checkOfflineBar();
+    showTab('home');
+    buildCategoryGrid();
+    updateUserButtons();
+    document.getElementById('expense-date').value = todayStr();
+    updateDatePills();
+  }
 
-  // 카테고리 버튼 초기 빌드 (기록 탭 미리 빌드)
-  buildCategoryGrid();
-  updateUserButtons();
-  document.getElementById('expense-date').value = todayStr();
-  updateDatePills();
+  async function submitPin() {
+    var pin = document.getElementById('pin-input').value.trim();
+    if (!pin) return;
+    var btn = document.getElementById('pin-submit');
+    var errEl = document.getElementById('pin-error');
+    btn.disabled = true; btn.textContent = '확인 중...';
+    errEl.style.display = 'none';
+
+    localStorage.setItem('app_pin', pin);
+    try {
+      var res = await callAPI('getAvailableYears', {});
+      if (res && res.error === '인증 실패') {
+        localStorage.removeItem('app_pin');
+        document.getElementById('pin-input').value = '';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = '확인';
+        return;
+      }
+    } catch(e) { /* 네트워크 오류 시 PIN 저장 유지하고 진행 */ }
+
+    startApp();
+  }
+
+  document.getElementById('pin-submit').addEventListener('click', submitPin);
+  document.getElementById('pin-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitPin();
+  });
+
+  if (getStoredPin()) {
+    startApp();
+  } else {
+    document.getElementById('pin-overlay').classList.add('show');
+    setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+  }
 });
 </script>
 </body>
