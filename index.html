@@ -752,6 +752,18 @@ function getStoredPin() {
   return localStorage.getItem('app_pin') || '';
 }
 
+var _retryFns = {};
+function renderLoadError(areaId, msgId, retryKey) {
+  var msgEl = document.getElementById(msgId);
+  var areaEl = document.getElementById(areaId);
+  if (msgEl) msgEl.textContent = '-';
+  if (areaEl) areaEl.innerHTML =
+    '<div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:13px">'
+    + '데이터를 불러오지 못했어요.<br>'
+    + '<button onclick="_retryFns[\'' + retryKey + '\']()" style="margin-top:10px;padding:7px 18px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;font-size:13px">다시 시도</button>'
+    + '</div>';
+}
+
 // GET: 조회 / POST: 쓰기·수정·삭제 (text/plain으로 CORS preflight 방지)
 function callAPI(action, params, method) {
   var pin = getStoredPin();
@@ -878,6 +890,10 @@ async function loadHomeData() {
     if (summary.success) {
       setCached(summaryKey, summary);
       renderHomeSummary(summary);
+    } else {
+      _retryFns['home'] = loadHomeData;
+      renderLoadError('home-recent-list', 'home-total', 'home');
+      return;
     }
     if (recentRes.success) {
       setCached(recentKey, recentRes.data);
@@ -885,6 +901,8 @@ async function loadHomeData() {
     }
   } catch(e) {
     console.error('홈 데이터 로드 실패', e);
+    _retryFns['home'] = loadHomeData;
+    renderLoadError('home-recent-list', 'home-total', 'home');
   }
 }
 
@@ -1294,8 +1312,15 @@ async function loadMonthlyData() {
     if (expRes.success) {
       setCached(expKey, expRes.data);
       renderMonthlyExpenses(expRes.data);
+    } else {
+      _retryFns['monthly'] = loadMonthlyData;
+      renderLoadError('monthly-expense-list', 'm-total', 'monthly');
     }
-  } catch(e) { console.error('월간 로드 실패', e); }
+  } catch(e) {
+    console.error('월간 로드 실패', e);
+    _retryFns['monthly'] = loadMonthlyData;
+    renderLoadError('monthly-expense-list', 'm-total', 'monthly');
+  }
 }
 
 function renderMonthlySkeleton() {
@@ -1419,8 +1444,15 @@ async function loadAnnualData() {
     if (summary.success) {
       setCached(key, summary);
       renderAnnualSummary(summary);
+    } else {
+      _retryFns['annual'] = loadAnnualData;
+      renderLoadError('annual-chart-wrap', 'y-total', 'annual');
     }
-  } catch(e) { console.error('연간 로드 실패', e); }
+  } catch(e) {
+    console.error('연간 로드 실패', e);
+    _retryFns['annual'] = loadAnnualData;
+    renderLoadError('annual-chart-wrap', 'y-total', 'annual');
+  }
 }
 
 function updateAnnualNavBtns() {
