@@ -753,13 +753,16 @@ function getStoredPin() {
 }
 
 var _retryFns = {};
-function renderLoadError(areaId, msgId, retryKey) {
+function renderLoadError(areaId, msgId, retryKey, errorMsg) {
   var msgEl = document.getElementById(msgId);
   var areaEl = document.getElementById(areaId);
   if (msgEl) msgEl.textContent = '-';
+  var detail = errorMsg
+    ? '<div style="font-size:11px;margin-top:4px;opacity:.7;word-break:break-all">' + escHtml(String(errorMsg).slice(0, 120)) + '</div>'
+    : '';
   if (areaEl) areaEl.innerHTML =
     '<div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:13px">'
-    + '데이터를 불러오지 못했어요.<br>'
+    + '데이터를 불러오지 못했어요.' + detail + '<br>'
     + '<button onclick="_retryFns[\'' + retryKey + '\']()" style="margin-top:10px;padding:7px 18px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;font-size:13px">다시 시도</button>'
     + '</div>';
 }
@@ -767,17 +770,25 @@ function renderLoadError(areaId, msgId, retryKey) {
 // GET: 조회 / POST: 쓰기·수정·삭제 (text/plain으로 CORS preflight 방지)
 function callAPI(action, params, method) {
   var pin = getStoredPin();
+  function parseResponse(r) {
+    return r.text().then(function(text) {
+      try { return JSON.parse(text); }
+      catch(e) {
+        console.error('[GAS] 비-JSON 응답 (' + action + '):', text.slice(0, 300));
+        throw new Error('서버 응답 오류: ' + text.slice(0, 80));
+      }
+    });
+  }
   if (method === 'POST') {
     return fetch(GAS_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(Object.assign({ action: action, pin: pin }, params)),
       redirect: 'follow'
-    }).then(function(r) { return r.json(); });
+    }).then(parseResponse);
   }
   var qs = new URLSearchParams(Object.assign({ action: action, pin: pin }, params || {})).toString();
-  return fetch(GAS_BACKEND_URL + '?' + qs, { redirect: 'follow' })
-    .then(function(r) { return r.json(); });
+  return fetch(GAS_BACKEND_URL + '?' + qs, { redirect: 'follow' }).then(parseResponse);
 }
 
 // ====================================================
@@ -903,6 +914,13 @@ async function loadHomeData() {
       return;
     }
 
+    var summaryErr = results[0].status === 'rejected'
+      ? results[0].reason && results[0].reason.message
+      : (summary && !summary.success ? summary.error : null);
+    var recentErr = results[1].status === 'rejected'
+      ? results[1].reason && results[1].reason.message
+      : (recentRes && !recentRes.success ? recentRes.error : null);
+
     if (summary && summary.success) {
       setCached(summaryKey, summary);
       renderHomeSummary(summary);
@@ -915,12 +933,12 @@ async function loadHomeData() {
       renderHomeRecent(recentRes.data);
     } else {
       _retryFns['home'] = loadHomeData;
-      renderLoadError('home-recent-list', null, 'home');
+      renderLoadError('home-recent-list', null, 'home', recentErr || summaryErr);
     }
   } catch(e) {
     console.error('홈 데이터 로드 실패', e);
     _retryFns['home'] = loadHomeData;
-    renderLoadError('home-recent-list', 'home-total', 'home');
+    renderLoadError('home-recent-list', 'home-total', 'home', e.message);
   }
 }
 
@@ -1332,6 +1350,13 @@ async function loadMonthlyData() {
       return;
     }
 
+    var summaryErr = results[0].status === 'rejected'
+      ? results[0].reason && results[0].reason.message
+      : (summary && !summary.success ? summary.error : null);
+    var expErr = results[1].status === 'rejected'
+      ? results[1].reason && results[1].reason.message
+      : (expRes && !expRes.success ? expRes.error : null);
+
     if (summary && summary.success) {
       setCached(summaryKey, summary);
       renderMonthlySummary(summary);
@@ -1341,12 +1366,12 @@ async function loadMonthlyData() {
       renderMonthlyExpenses(expRes.data);
     } else {
       _retryFns['monthly'] = loadMonthlyData;
-      renderLoadError('monthly-expense-list', summary && summary.success ? null : 'm-total', 'monthly');
+      renderLoadError('monthly-expense-list', summary && summary.success ? null : 'm-total', 'monthly', expErr || summaryErr);
     }
   } catch(e) {
     console.error('월간 로드 실패', e);
     _retryFns['monthly'] = loadMonthlyData;
-    renderLoadError('monthly-expense-list', 'm-total', 'monthly');
+    renderLoadError('monthly-expense-list', 'm-total', 'monthly', e.message);
   }
 }
 
@@ -1477,12 +1502,12 @@ async function loadAnnualData() {
       renderAnnualSummary(summary);
     } else {
       _retryFns['annual'] = loadAnnualData;
-      renderLoadError('annual-chart-wrap', 'y-total', 'annual');
+      renderLoadError('annual-chart-wrap', 'y-total', 'annual', summary && summary.error);
     }
   } catch(e) {
     console.error('연간 로드 실패', e);
     _retryFns['annual'] = loadAnnualData;
-    renderLoadError('annual-chart-wrap', 'y-total', 'annual');
+    renderLoadError('annual-chart-wrap', 'y-total', 'annual', e.message);
   }
 }
 
