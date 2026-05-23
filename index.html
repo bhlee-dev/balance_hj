@@ -952,6 +952,8 @@ async function onSaveExpense() {
     if (res && res.success) {
       var year = parseInt(dateVal.slice(0,4),10), month = parseInt(dateVal.slice(5,7),10);
       invalidateCached(year, month);
+      invalidateCached(state.monthlyYear, state.monthlyMonth);
+      invalidateCached(state.currentYear, state.currentMonth);
       updateRecentItems(userVal, itemVal);
       updateItemCategoryMap(itemVal, catVal);
       showSaveSuccess(function() {

@@ -195,12 +195,24 @@ function updateExpense(rowIndex, data) {
     const memo = sanitizeString(data.memo || '', 200);
 
     const sheet = getSheet(RAW_SHEET);
+    // 업데이트 전 기존 날짜 읽기 (날짜 변경 시 이전 월 캐시도 무효화)
+    const oldDateVal = sheet.getRange(rowIndex, 1).getValue();
+    const oldDateStr = typeof oldDateVal === 'string' ? oldDateVal
+      : Utilities.formatDate(new Date(oldDateVal), 'Asia/Seoul', 'yyyy-MM-dd');
+
     // A~F열만 수정, G열(created_at) 유지
     sheet.getRange(rowIndex, 1, 1, 6).setValues([[date, item, category, user, amount, memo]]);
 
     const year = parseInt(date.slice(0, 4), 10);
     const month = parseInt(date.slice(5, 7), 10);
     invalidateCache(year, month);
+
+    // 날짜가 변경된 경우 이전 월도 무효화
+    const oldYear = parseInt(oldDateStr.slice(0, 4), 10);
+    const oldMonth = parseInt(oldDateStr.slice(5, 7), 10);
+    if (oldYear !== year || oldMonth !== month) {
+      invalidateCache(oldYear, oldMonth);
+    }
 
     return { success: true };
   } catch (e) {
@@ -442,8 +454,9 @@ function getMonthlySummary(year, month) {
     let livingTotal = 0;
     let husbandTotal = 0;
     let wifeTotal = 0;
-    const byCategory = { '식비': 0, '교통': 0, '생활': 0, '의료': 0, '여가': 0, '기타': 0 };
+    const byCategory = { '식비': 0, '교통': 0, '생활': 0, '의료': 0, '여가': 0, '고정비': 0, '기타': 0 };
     const dailyTotals = {};
+    let rawFixedTotal = 0;
 
     if (rawLastRow >= 2) {
       const values = rawSheet.getRange(2, 1, rawLastRow - 1, 5).getValues();
@@ -460,7 +473,12 @@ function getMonthlySummary(year, month) {
         const user = row[3];
         const category = row[2];
 
-        livingTotal += amount;
+        // 고정비 카테고리는 생활비가 아닌 고정비 합계에 집계
+        if (category === '고정비') {
+          rawFixedTotal += amount;
+        } else {
+          livingTotal += amount;
+        }
         if (user === '남편') husbandTotal += amount;
         else if (user === '아내') wifeTotal += amount;
         if (byCategory.hasOwnProperty(category)) byCategory[category] += amount;
@@ -469,10 +487,10 @@ function getMonthlySummary(year, month) {
       });
     }
 
-    // FIXED_EXPENSES 집계
+    // FIXED_EXPENSES 집계 (레거시 고정비 시트) + RAW_DATA 고정비 항목
     const fixedResult = getFixedExpense(year, month);
     const fixedData = fixedResult.success ? fixedResult.data : { management_fee: 0, gas: 0, water: 0, tax_label: '', tax_amount: 0, exists: false };
-    const fixedTotal = fixedData.management_fee + fixedData.gas + fixedData.water + fixedData.tax_amount;
+    const fixedTotal = fixedData.management_fee + fixedData.gas + fixedData.water + fixedData.tax_amount + rawFixedTotal;
     const total = livingTotal + fixedTotal;
 
     const summary = {
@@ -521,7 +539,7 @@ function getYearlySummary(year) {
     // 월별 집계 초기화
     const monthData = {};
     for (let m = 1; m <= 12; m++) {
-      monthData[m] = { living: 0, husband: 0, wife: 0 };
+      monthData[m] = { living: 0, rawFixed: 0, husband: 0, wife: 0 };
     }
 
     if (rawLastRow >= 2) {
@@ -536,7 +554,13 @@ function getYearlySummary(year) {
         if (m < 1 || m > 12) return;
         const amount = parseInt(row[4], 10) || 0;
         const user = row[3];
-        monthData[m].living += amount;
+        const category = row[2];
+        // 고정비 카테고리는 생활비가 아닌 고정비 합계에 집계
+        if (category === '고정비') {
+          monthData[m].rawFixed += amount;
+        } else {
+          monthData[m].living += amount;
+        }
         if (user === '남편') monthData[m].husband += amount;
         else if (user === '아내') monthData[m].wife += amount;
       });
@@ -566,7 +590,7 @@ function getYearlySummary(year) {
 
     for (let m = 1; m <= 12; m++) {
       const living = monthData[m].living;
-      const fixed = fixedByMonth[m];
+      const fixed = fixedByMonth[m] + monthData[m].rawFixed;
       const total = living + fixed;
       months.push({
         month: m,
