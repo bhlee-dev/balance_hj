@@ -7,7 +7,7 @@ const RAW_SHEET = 'RAW_DATA';
 const FIXED_SHEET = 'FIXED_EXPENSES';
 const CACHE_DURATION_SEC = 30;
 const ALLOWED_USERS = ['남편', '아내'];
-const ALLOWED_CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '기타'];
+const ALLOWED_CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
 
 // ====================================================
 // 최초 1회 설정 함수 — GAS 편집기에서 직접 실행
