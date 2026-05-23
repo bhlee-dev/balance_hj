@@ -1061,8 +1061,8 @@ function fillFormWithExpense(data) {
 function openEditMode(expenseData, returnTab) {
   state.editingRowIndex = expenseData.rowIndex;
   state.returnTab = returnTab;
-  fillFormWithExpense(expenseData);
   showTab('record');
+  fillFormWithExpense(expenseData);
   setTimeout(function() { document.getElementById('expense-item').focus(); }, 150);
 }
 
@@ -1502,18 +1502,19 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('action-edit-btn').addEventListener('click', function() {
     if (!_actionData) return;
+    var data = _actionData;
     closeActionSheet();
     // 해당 데이터 찾기
     var key = 'expenses_' + state.monthlyYear + '_' + state.monthlyMonth;
     var cached = getCached(key);
     if (cached) {
-      var found = cached.find(function(e){ return e.rowIndex === _actionData.rowIndex; });
+      var found = cached.find(function(e){ return e.rowIndex === data.rowIndex; });
       if (found) { openEditMode(found, 'monthly'); return; }
     }
     // 캐시 없으면 GAS 호출
     callAPI('getExpenses', {year: state.monthlyYear, month: state.monthlyMonth}).then(function(res) {
       if (res.success) {
-        var found = res.data.find(function(e){ return e.rowIndex === _actionData.rowIndex; });
+        var found = res.data.find(function(e){ return e.rowIndex === data.rowIndex; });
         if (found) openEditMode(found, 'monthly');
       }
     });
