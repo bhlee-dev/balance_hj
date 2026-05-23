@@ -487,10 +487,8 @@ function getMonthlySummary(year, month) {
       });
     }
 
-    // FIXED_EXPENSES 집계 (레거시 고정비 시트) + RAW_DATA 고정비 항목
-    const fixedResult = getFixedExpense(year, month);
-    const fixedData = fixedResult.success ? fixedResult.data : { management_fee: 0, gas: 0, water: 0, tax_label: '', tax_amount: 0, exists: false };
-    const fixedTotal = fixedData.management_fee + fixedData.gas + fixedData.water + fixedData.tax_amount + rawFixedTotal;
+    // RAW_DATA 고정비 항목만 집계 (FIXED_EXPENSES 시트 미사용)
+    const fixedTotal = rawFixedTotal;
     const total = livingTotal + fixedTotal;
 
     const summary = {
@@ -502,13 +500,6 @@ function getMonthlySummary(year, month) {
       fixedTotal: fixedTotal,
       husbandTotal: husbandTotal,
       wifeTotal: wifeTotal,
-      fixedDetail: {
-        management_fee: fixedData.management_fee,
-        gas: fixedData.gas,
-        water: fixedData.water,
-        tax_label: fixedData.tax_label,
-        tax_amount: fixedData.tax_amount
-      },
       byCategory: byCategory,
       dailyTotals: dailyTotals
     };
@@ -566,31 +557,13 @@ function getYearlySummary(year) {
       });
     }
 
-    // FIXED_EXPENSES 한 번에 읽기
-    const fixedSheet = getSheet(FIXED_SHEET);
-    const fixedLastRow = fixedSheet.getLastRow();
-    const fixedByMonth = {};
-    for (let m = 1; m <= 12; m++) fixedByMonth[m] = 0;
-
-    if (fixedLastRow >= 2) {
-      const fValues = fixedSheet.getRange(2, 1, fixedLastRow - 1, 7).getValues();
-      fValues.forEach(function(row) {
-        if (parseInt(row[0], 10) !== year) return;
-        const m = parseInt(row[1], 10);
-        if (m < 1 || m > 12) return;
-        const f = (parseInt(row[2], 10) || 0) + (parseInt(row[3], 10) || 0)
-                + (parseInt(row[4], 10) || 0) + (parseInt(row[6], 10) || 0);
-        fixedByMonth[m] = f;
-      });
-    }
-
-    // 결과 조합
+    // 결과 조합 (FIXED_EXPENSES 시트 미사용, RAW_DATA 고정비 항목만)
     const months = [];
     let yearTotal = 0, yearLiving = 0, yearFixed = 0, yearHusband = 0, yearWife = 0;
 
     for (let m = 1; m <= 12; m++) {
       const living = monthData[m].living;
-      const fixed = fixedByMonth[m] + monthData[m].rawFixed;
+      const fixed = monthData[m].rawFixed;
       const total = living + fixed;
       months.push({
         month: m,
