@@ -834,6 +834,7 @@ function renderHomeRecent(data) {
 // ====================================================
 function initRecordTab() {
   buildCategoryGrid();
+  if (!state.editingRowIndex) resetForm();
   updateUserButtons();
   updateDatePills();
   updateItemSuggestions();
