@@ -590,7 +590,7 @@ const state = {
   monthlyYear: new Date().getFullYear(),
   monthlyMonth: new Date().getMonth() + 1,
   annualYear: new Date().getFullYear(),
-  selectedUser: localStorage.getItem('lastUser') || '희',
+  selectedUser: (function(){ var u=localStorage.getItem('lastUser')||'희'; return u==='남편'?'희':u==='아내'?'정':u; })(),
   selectedCategory: null,
   selectedMajorCat: null,
   editingRowIndex: null,
