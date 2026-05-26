@@ -139,6 +139,8 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .form-input{width:100%;height:52px;border:1px solid var(--border-mid);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font-size:var(--text-body);font-family:inherit;padding:0 16px;outline:none;transition:border-color .2s ease-in-out;font-variant-numeric:tabular-nums}
 .form-input:focus{border-color:var(--accent)}
 .form-input.error{border-color:var(--danger)}
+select.form-input{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:44px}
+select.form-input option{background:#2C2C2E;color:#F5F5F7}
 .form-error{font-size:var(--text-micro);font-weight:var(--fw-medium);color:var(--danger);margin-top:5px}
 textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 
@@ -363,6 +365,13 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         <div class="form-group">
           <div class="form-label">항목명</div>
           <input class="form-input" id="expense-item" type="text" placeholder="어디서 사용했나요? (예: 마트, 점심)" maxlength="50" list="item-suggestions" autocomplete="off">
+          <select class="form-input" id="expense-item-select" style="display:none">
+            <option value="관리비">관리비</option>
+            <option value="도시가스">도시가스</option>
+            <option value="수도요금">수도요금</option>
+            <option value="세금">세금</option>
+            <option value="custom">✏️ 직접입력</option>
+          </select>
           <datalist id="item-suggestions"></datalist>
           <div class="form-error" id="item-error"></div>
         </div>
@@ -892,6 +901,7 @@ function updateCategoryButtons() {
   document.querySelectorAll('.cat-btn').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.cat === state.selectedCategory);
   });
+  updateItemField();
 }
 
 function updateDatePills() {
@@ -905,6 +915,30 @@ function updateItemSuggestions() {
   var datalist = document.getElementById('item-suggestions');
   var items = getRecentItems(state.selectedUser);
   datalist.innerHTML = items.map(function(i){ return '<option value="' + escHtml(i) + '">'; }).join('');
+}
+
+function getItemValue() {
+  var sel = document.getElementById('expense-item-select');
+  if (sel.style.display !== 'none') return sel.value;
+  return document.getElementById('expense-item').value.trim();
+}
+
+function updateItemField() {
+  var input = document.getElementById('expense-item');
+  var sel = document.getElementById('expense-item-select');
+  if (state.selectedCategory === '고정비') {
+    if (sel.value === 'custom') {
+      sel.style.display = 'none';
+      input.style.display = '';
+    } else {
+      input.style.display = 'none';
+      sel.style.display = '';
+    }
+  } else {
+    input.style.display = '';
+    sel.style.display = 'none';
+    sel.value = '관리비';
+  }
 }
 
 // 폼 관련 유효성 검사 & 인라인 에러
@@ -927,13 +961,13 @@ async function onSaveExpense() {
   var dateVal = document.getElementById('expense-date').value;
   var userVal = state.selectedUser;
   var catVal = state.selectedCategory;
-  var itemVal = document.getElementById('expense-item').value.trim();
+  var itemVal = getItemValue();
   var amountRaw = parseMoney(document.getElementById('expense-amount').value);
 
   clearError('date-error', [document.getElementById('expense-date')]);
   clearError('user-error', [document.getElementById('btn-husband'), document.getElementById('btn-wife')]);
   clearError('category-error', document.querySelectorAll('.cat-btn'));
-  clearError('item-error', [document.getElementById('expense-item')]);
+  clearError('item-error', [document.getElementById('expense-item'), document.getElementById('expense-item-select')]);
   clearError('amount-error', [document.getElementById('expense-amount')]);
 
   if (!dateVal) { showError(document.getElementById('expense-date'), 'date-error', '날짜를 선택해주세요.'); valid = false; }
@@ -944,7 +978,13 @@ async function onSaveExpense() {
     document.getElementById('category-error').style.display = 'block';
     valid = false;
   }
-  if (!itemVal) { showError(document.getElementById('expense-item'), 'item-error', '항목명을 입력해주세요.'); valid = false; }
+  if (!itemVal) {
+    var itemErrEl = document.getElementById('expense-item-select').style.display !== 'none'
+      ? document.getElementById('expense-item-select')
+      : document.getElementById('expense-item');
+    showError(itemErrEl, 'item-error', '항목명을 입력해주세요.');
+    valid = false;
+  }
   if (amountRaw <= 0) { showError(document.getElementById('expense-amount'), 'amount-error', '금액을 입력해주세요.'); valid = false; }
   else if (amountRaw > 9999999) { showError(document.getElementById('expense-amount'), 'amount-error', '최대 금액을 초과했습니다.'); valid = false; }
 
@@ -1044,6 +1084,7 @@ function setBtnError(msg) {
 function resetForm() {
   document.getElementById('expense-date').value = todayStr();
   document.getElementById('expense-item').value = '';
+  document.getElementById('expense-item-select').value = '관리비';
   document.getElementById('expense-amount').value = '';
   document.getElementById('expense-memo').value = '';
   document.getElementById('memo-count').textContent = '0';
@@ -1064,7 +1105,19 @@ function fillFormWithExpense(data) {
   state.selectedUser = data.user || '남편';
   state.selectedCategory = data.category || null;
   state.categoryManuallySet = true;
-  document.getElementById('expense-item').value = data.item || '';
+  var FIXED_PRESET = ['관리비', '도시가스', '수도요금', '세금'];
+  var editItem = data.item || '';
+  var sel = document.getElementById('expense-item-select');
+  if (data.category === '고정비' && FIXED_PRESET.includes(editItem)) {
+    sel.value = editItem;
+    document.getElementById('expense-item').value = '';
+  } else if (data.category === '고정비') {
+    sel.value = 'custom';
+    document.getElementById('expense-item').value = editItem;
+  } else {
+    sel.value = '관리비';
+    document.getElementById('expense-item').value = editItem;
+  }
   document.getElementById('expense-amount').value = data.amount > 0 ? data.amount.toLocaleString('ko-KR') : '';
   document.getElementById('expense-memo').value = data.memo || '';
   document.getElementById('memo-count').textContent = (data.memo || '').length;
@@ -1081,7 +1134,10 @@ function openEditMode(expenseData, returnTab) {
   state.returnTab = returnTab;
   showTab('record');
   fillFormWithExpense(expenseData);
-  setTimeout(function() { document.getElementById('expense-item').focus(); }, 150);
+  setTimeout(function() {
+    var input = document.getElementById('expense-item');
+    if (input.style.display !== 'none') input.focus();
+  }, 150);
 }
 
 function cancelEditMode() {
@@ -1492,6 +1548,18 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('expense-memo').addEventListener('input', function() {
     document.getElementById('memo-count').textContent = this.value.length;
+  });
+
+  // 고정비 항목 드롭다운 — 직접입력 선택 시 텍스트 인풋으로 전환
+  document.getElementById('expense-item-select').addEventListener('change', function() {
+    clearError('item-error', [this, document.getElementById('expense-item')]);
+    if (this.value === 'custom') {
+      this.style.display = 'none';
+      var input = document.getElementById('expense-item');
+      input.style.display = '';
+      input.value = '';
+      input.focus();
+    }
   });
 
   // 항목명 자동완성 카테고리 제안
