@@ -5,7 +5,7 @@
 // 시트 이름 상수 (SPREADSHEET_ID는 PropertiesService에 저장)
 const RAW_SHEET = 'RAW_DATA';
 const CACHE_DURATION_SEC = 30;
-const ALLOWED_USERS = ['남편', '아내'];
+const ALLOWED_USERS = ['희', '정', '남편', '아내']; // 구 데이터 호환 유지
 const ALLOWED_CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
 
 // ====================================================

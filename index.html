@@ -179,6 +179,25 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 #save-btn{position:relative}
 .btn-check-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
 
+/* ══════════════════════════════════════ FORM CARD ═══ */
+.form-card{background:var(--surface-1);border-radius:var(--radius-md);margin-bottom:12px;overflow:hidden}
+.form-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;min-height:52px}
+.form-row-label{font-size:var(--text-caption);font-weight:var(--fw-medium);color:var(--text-sub);flex-shrink:0;white-space:nowrap;min-width:44px}
+.form-row-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 16px}
+.seg-ctrl{display:flex;background:rgba(255,255,255,0.06);border-radius:10px;padding:2px;gap:2px}
+.seg-btn{flex:1;height:32px;padding:0 14px;border:none;border-radius:8px;background:transparent;color:var(--text-muted);font-size:var(--text-caption);font-weight:var(--fw-medium);cursor:pointer;font-family:inherit;transition:background .15s,color .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.seg-btn.active{background:var(--surface-3);color:var(--text)}
+.seg-btn.active-hee{background:var(--husband-bg);color:var(--husband)}
+.seg-btn.active-jung{background:var(--wife-bg);color:var(--wife)}
+.seg-btn.error{outline:1.5px solid var(--danger)}
+.form-card-input{background:transparent;border:none;outline:none;color:var(--text);font-size:var(--text-body);font-family:inherit;text-align:right;flex:1;min-width:0;padding:0}
+.form-card-input::placeholder{color:var(--text-muted)}
+textarea.form-card-input{resize:none;text-align:left;line-height:1.5;width:100%;padding:0}
+select.form-card-input{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238E8E93' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0 center;padding-right:18px}
+select.form-card-input option{background:#2C2C2E;color:#F5F5F7}
+input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
+.form-card-input.error{color:var(--danger)!important}
+
 /* ═══════════════════════════════════════ MONTH NAV ═══ */
 .month-nav{display:flex;align-items:center;justify-content:space-between;padding:26px 22px 14px}
 .month-nav-title{font-size:var(--text-h2);font-weight:var(--fw-semibold);letter-spacing:var(--ls-normal)}
@@ -328,7 +347,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
     <!-- ==================== 기록 탭 ==================== -->
     <div id="tab-record" class="tab-content">
-      <div style="padding:24px 16px 0">
+      <div style="padding:20px 16px 0">
 
         <!-- 수정 모드 배너 -->
         <div id="edit-banner">
@@ -336,65 +355,91 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <button id="edit-cancel" type="button">✕ 취소</button>
         </div>
 
-        <!-- 일상 지출 폼 -->
-        <div class="form-group">
-          <div class="form-label">날짜</div>
-          <input class="form-input" id="expense-date" type="date">
-          <div class="quick-pills">
-            <button class="quick-pill" id="pill-yesterday" type="button">어제</button>
-            <button class="quick-pill" id="pill-today" type="button">오늘</button>
+        <!-- 카드 1: 날짜 + 사용자 -->
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-row-label">날짜</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:1">
+              <input class="form-card-input" id="expense-date" type="date">
+              <div style="display:flex;gap:6px">
+                <button class="quick-pill" id="pill-yesterday" type="button">어제</button>
+                <button class="quick-pill" id="pill-today" type="button">오늘</button>
+              </div>
+            </div>
           </div>
-          <div class="form-error" id="date-error"></div>
-        </div>
-
-        <div class="form-group">
-          <div class="form-label">사용자</div>
-          <div class="user-btns">
-            <button class="user-select-btn" id="btn-husband" type="button">남편</button>
-            <button class="user-select-btn" id="btn-wife" type="button">아내</button>
+          <div class="form-row-divider"></div>
+          <div class="form-row">
+            <span class="form-row-label">사용자</span>
+            <div class="seg-ctrl" id="seg-user">
+              <button class="seg-btn" data-user="희" type="button">희</button>
+              <button class="seg-btn" data-user="정" type="button">정</button>
+            </div>
           </div>
-          <div class="form-error" id="user-error"></div>
+          <div class="form-error" id="date-error" style="padding:0 16px 8px;margin:0"></div>
+          <div class="form-error" id="user-error" style="padding:0 16px 8px;margin:0"></div>
         </div>
 
-        <div class="form-group">
-          <div class="form-label">카테고리</div>
-          <div class="category-grid" id="category-grid"></div>
-          <div class="form-error" id="category-error"></div>
-        </div>
-
-        <div class="form-group">
-          <div class="form-label">항목명</div>
-          <input class="form-input" id="expense-item" type="text" placeholder="어디서 사용했나요? (예: 마트, 점심)" maxlength="50" list="item-suggestions" autocomplete="off">
-          <select class="form-input" id="expense-item-select" style="display:none">
-            <option value="관리비">관리비</option>
-            <option value="도시가스">도시가스</option>
-            <option value="수도요금">수도요금</option>
-            <option value="세금">세금</option>
-            <option value="custom">✏️ 직접입력</option>
-          </select>
+        <!-- 카드 2: 분류 + 항목명 -->
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-row-label">분류</span>
+            <div class="seg-ctrl" id="seg-major">
+              <button class="seg-btn" data-major="생활비" type="button">생활비</button>
+              <button class="seg-btn" data-major="고정비" type="button">고정비</button>
+              <button class="seg-btn" data-major="기타" type="button">기타</button>
+            </div>
+          </div>
+          <div class="form-row-divider" id="subcat-divider" style="display:none"></div>
+          <div class="form-row" id="subcat-row" style="display:none">
+            <span class="form-row-label">세부</span>
+            <select class="form-card-input" id="expense-subcat">
+              <option value="식비">식비</option>
+              <option value="교통">교통</option>
+              <option value="생활">생활</option>
+              <option value="의료">의료</option>
+              <option value="여가">여가</option>
+            </select>
+          </div>
+          <div class="form-row-divider"></div>
+          <div class="form-row">
+            <span class="form-row-label">항목명</span>
+            <input class="form-card-input" id="expense-item" type="text" placeholder="직접 입력" maxlength="50" list="item-suggestions" autocomplete="off">
+            <select class="form-card-input" id="expense-item-select" style="display:none">
+              <option value="관리비">관리비</option>
+              <option value="도시가스">도시가스</option>
+              <option value="수도요금">수도요금</option>
+              <option value="세금">세금</option>
+            </select>
+          </div>
           <datalist id="item-suggestions"></datalist>
-          <div class="form-error" id="item-error"></div>
+          <div class="form-error" id="category-error" style="padding:0 16px 8px;margin:0"></div>
+          <div class="form-error" id="item-error" style="padding:0 16px 8px;margin:0"></div>
         </div>
 
-        <div class="form-group">
-          <div class="form-label">금액</div>
-          <div class="amount-wrap">
-            <input class="form-input select-on-focus" id="expense-amount" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()">
-            <span class="amount-unit">원</span>
+        <!-- 카드 3: 금액 + 메모 -->
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-row-label">금액</span>
+            <div style="display:flex;align-items:center;gap:4px;flex:1;justify-content:flex-end">
+              <input class="form-card-input" id="expense-amount" type="tel" inputmode="numeric" placeholder="0" onfocus="this.select()" style="font-variant-numeric:tabular-nums">
+              <span style="font-size:var(--text-caption);color:var(--text-muted);flex-shrink:0">원</span>
+            </div>
           </div>
-          <div class="amount-pills">
-            <button class="amount-pill" data-add="1000" type="button">+1,000</button>
-            <button class="amount-pill" data-add="5000" type="button">+5,000</button>
-            <button class="amount-pill" data-add="10000" type="button">+10,000</button>
-            <button class="amount-pill" data-add="50000" type="button">+50,000</button>
+          <div style="padding:0 16px 14px">
+            <div class="amount-pills" style="margin:0">
+              <button class="amount-pill" data-add="1000" type="button">+1,000</button>
+              <button class="amount-pill" data-add="5000" type="button">+5,000</button>
+              <button class="amount-pill" data-add="10000" type="button">+10,000</button>
+              <button class="amount-pill" data-add="50000" type="button">+50,000</button>
+            </div>
           </div>
-          <div class="form-error" id="amount-error"></div>
-        </div>
-
-        <div class="form-group">
-          <div class="form-label">메모 <span style="font-weight:400">(선택사항)</span></div>
-          <textarea class="form-input" id="expense-memo" placeholder="메모 (선택사항)" rows="2" maxlength="200"></textarea>
-          <div class="char-counter"><span id="memo-count">0</span> / 200</div>
+          <div class="form-row-divider"></div>
+          <div class="form-row" style="align-items:flex-start">
+            <span class="form-row-label" style="padding-top:2px">메모</span>
+            <textarea class="form-card-input" id="expense-memo" placeholder="메모 (선택사항)" rows="2" maxlength="200"></textarea>
+          </div>
+          <div style="text-align:right;font-size:var(--text-micro);color:var(--text-muted);padding:0 16px 12px"><span id="memo-count">0</span> / 200</div>
+          <div class="form-error" id="amount-error" style="padding:0 16px 8px;margin:0"></div>
         </div>
 
         <div id="save-btn-wrap">
@@ -545,8 +590,9 @@ const state = {
   monthlyYear: new Date().getFullYear(),
   monthlyMonth: new Date().getMonth() + 1,
   annualYear: new Date().getFullYear(),
-  selectedUser: localStorage.getItem('lastUser') || '남편',
+  selectedUser: localStorage.getItem('lastUser') || '희',
   selectedCategory: null,
+  selectedMajorCat: null,
   editingRowIndex: null,
   returnTab: null,
   categoryManuallySet: false,
@@ -852,7 +898,7 @@ function renderHomeRecent(data) {
       '</div>' +
       '<div class="expense-right">' +
         '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
-        '<div class="expense-user"><span class="user-pill ' + (item.user==='남편'?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span></div>' +
+        '<div class="expense-user"><span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span></div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -861,37 +907,66 @@ function renderHomeRecent(data) {
 // ====================================================
 // 기록 탭
 // ====================================================
-function initRecordTab() {
-  buildCategoryGrid();
-  if (!state.editingRowIndex) resetForm();
-  updateUserButtons();
-  updateDatePills();
-  updateItemSuggestions();
+// ── 카테고리 헬퍼 ──────────────────────────────────────
+function catToMajor(cat) {
+  if (['식비','교통','생활','의료','여가'].includes(cat)) return '생활비';
+  if (cat === '고정비') return '고정비';
+  return '기타';
 }
 
-function buildCategoryGrid() {
-  var grid = document.getElementById('category-grid');
-  if (grid.children.length > 0) return; // 이미 생성됨
-  grid.innerHTML = CATEGORIES.map(function(cat) {
-    return '<button class="cat-btn" data-cat="' + escHtml(cat) + '" type="button">' +
-      '<span class="cat-emoji">' + (CATEGORY_EMOJI[cat]||'📦') + '</span>' +
-      '<span>' + escHtml(cat) + '</span>' +
-    '</button>';
-  }).join('');
-  grid.querySelectorAll('.cat-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      state.selectedCategory = this.dataset.cat;
-      state.categoryManuallySet = true;
-      updateCategoryButtons();
-      clearError('category-error', this.parentElement.querySelectorAll('.cat-btn'));
-    });
+function effectiveCategory() {
+  if (!state.selectedMajorCat) return null;
+  if (state.selectedMajorCat === '고정비') return '고정비';
+  if (state.selectedMajorCat === '기타') return '기타';
+  var sub = document.getElementById('expense-subcat');
+  return sub ? sub.value : '식비';
+}
+
+function updateUserSeg() {
+  document.querySelectorAll('#seg-user .seg-btn').forEach(function(btn) {
+    var active = btn.dataset.user === state.selectedUser;
+    btn.className = 'seg-btn' + (active ? (state.selectedUser === '희' ? ' active-hee' : ' active-jung') : '');
   });
-  // 마지막 카테고리 복원
-  var lastCat = localStorage.getItem('lastCategory_' + state.selectedUser);
-  if (lastCat && !state.editingRowIndex) {
-    state.selectedCategory = lastCat;
-    updateCategoryButtons();
+}
+
+function updateMajorCatSeg() {
+  document.querySelectorAll('#seg-major .seg-btn').forEach(function(btn) {
+    btn.className = 'seg-btn' + (btn.dataset.major === state.selectedMajorCat ? ' active' : '');
+  });
+}
+
+function updateCategoryForm() {
+  var major = state.selectedMajorCat;
+  var subRow = document.getElementById('subcat-row');
+  var subDiv = document.getElementById('subcat-divider');
+  var input  = document.getElementById('expense-item');
+  var sel    = document.getElementById('expense-item-select');
+  if (!subRow || !input || !sel) return;
+  if (major === '생활비') {
+    subRow.style.display = ''; subDiv.style.display = '';
+    input.style.display = ''; sel.style.display = 'none';
+  } else if (major === '고정비') {
+    subRow.style.display = 'none'; subDiv.style.display = 'none';
+    input.style.display = 'none'; sel.style.display = '';
+  } else {
+    subRow.style.display = 'none'; subDiv.style.display = 'none';
+    input.style.display = ''; sel.style.display = 'none';
   }
+  updateMajorCatSeg();
+}
+
+// ── 레거시 래퍼 (다른 곳에서 여전히 호출) ───────────────
+function updateUserButtons() { updateUserSeg(); }
+function updateCategoryButtons() { updateCategoryForm(); }
+function buildCategoryGrid() { /* replaced by seg-ctrl */ }
+function updateItemField() { updateCategoryForm(); }
+
+function initRecordTab() {
+  if (!state.editingRowIndex) resetForm();
+  updateUserSeg();
+  updateCategoryForm();
+  updateDatePills();
+  updateItemSuggestions();
 }
 
 function updateUserButtons() {
@@ -964,21 +1039,26 @@ async function onSaveExpense() {
   var valid = true;
   var dateVal = document.getElementById('expense-date').value;
   var userVal = state.selectedUser;
-  var catVal = state.selectedCategory;
+  var catVal = effectiveCategory();
   var itemVal = getItemValue();
   var amountRaw = parseMoney(document.getElementById('expense-amount').value);
 
   clearError('date-error', [document.getElementById('expense-date')]);
-  clearError('user-error', [document.getElementById('btn-husband'), document.getElementById('btn-wife')]);
-  clearError('category-error', document.querySelectorAll('.cat-btn'));
+  clearError('user-error', Array.from(document.querySelectorAll('#seg-user .seg-btn')));
+  clearError('category-error', Array.from(document.querySelectorAll('#seg-major .seg-btn')));
   clearError('item-error', [document.getElementById('expense-item'), document.getElementById('expense-item-select')]);
   clearError('amount-error', [document.getElementById('expense-amount')]);
 
   if (!dateVal) { showError(document.getElementById('expense-date'), 'date-error', '날짜를 선택해주세요.'); valid = false; }
-  if (!userVal) { showError(document.getElementById('btn-husband'), 'user-error', '남편 또는 아내를 선택해주세요.'); valid = false; }
+  if (!userVal) {
+    document.querySelectorAll('#seg-user .seg-btn').forEach(function(b){ b.classList.add('error'); });
+    var ue = document.getElementById('user-error');
+    if (ue) { ue.textContent = '사용자를 선택해주세요.'; ue.style.display = 'block'; }
+    valid = false;
+  }
   if (!catVal) {
-    document.querySelectorAll('.cat-btn').forEach(function(b){ b.classList.add('error'); });
-    document.getElementById('category-error').textContent = '카테고리를 선택해주세요.';
+    document.querySelectorAll('#seg-major .seg-btn').forEach(function(b){ b.classList.add('error'); });
+    document.getElementById('category-error').textContent = '분류를 선택해주세요.';
     document.getElementById('category-error').style.display = 'block';
     valid = false;
   }
@@ -1016,6 +1096,7 @@ async function onSaveExpense() {
       invalidateCached(state.currentYear, state.currentMonth);
       updateRecentItems(userVal, itemVal);
       updateItemCategoryMap(itemVal, catVal);
+      localStorage.setItem('lastCategory_' + userVal, catVal);
       showSaveSuccess(function() {
         if (state.editingRowIndex) {
           var rt = state.returnTab || 'home';
@@ -1089,17 +1170,23 @@ function resetForm() {
   document.getElementById('expense-date').value = todayStr();
   document.getElementById('expense-item').value = '';
   document.getElementById('expense-item-select').value = '관리비';
+  var subEl = document.getElementById('expense-subcat');
+  if (subEl) subEl.value = '식비';
   document.getElementById('expense-amount').value = '';
   document.getElementById('expense-memo').value = '';
   document.getElementById('memo-count').textContent = '0';
   state.categoryManuallySet = false;
-  // 사용자/카테고리 localStorage에서 복원
   var lastCat = localStorage.getItem('lastCategory_' + state.selectedUser);
-  state.selectedCategory = lastCat || null;
-  updateCategoryButtons();
+  if (lastCat) {
+    state.selectedMajorCat = catToMajor(lastCat);
+    if (state.selectedMajorCat === '생활비' && subEl) subEl.value = lastCat;
+  } else {
+    state.selectedMajorCat = null;
+  }
+  updateCategoryForm();
+  updateUserSeg();
   updateDatePills();
   updateItemSuggestions();
-  // 수정 배너 숨기기
   document.getElementById('edit-banner').classList.remove('show');
   document.getElementById('save-btn').textContent = '저장하기';
 }
@@ -1107,17 +1194,25 @@ function resetForm() {
 function fillFormWithExpense(data) {
   document.getElementById('expense-date').value = data.date || todayStr();
   state.selectedUser = data.user || '남편';
-  state.selectedCategory = data.category || null;
+  // 구 DB 값('남편'/'아내') 호환
+  var rawUser = data.user || '희';
+  if (rawUser === '남편') rawUser = '희';
+  if (rawUser === '아내') rawUser = '정';
+  state.selectedUser = rawUser;
+
+  var cat = data.category || null;
+  state.selectedMajorCat = cat ? catToMajor(cat) : null;
   state.categoryManuallySet = true;
+
   var FIXED_PRESET = ['관리비', '도시가스', '수도요금', '세금'];
   var editItem = data.item || '';
   var sel = document.getElementById('expense-item-select');
-  if (data.category === '고정비' && FIXED_PRESET.includes(editItem)) {
+  var sub = document.getElementById('expense-subcat');
+
+  if (state.selectedMajorCat === '생활비' && sub) sub.value = cat;
+  if (state.selectedMajorCat === '고정비' && FIXED_PRESET.includes(editItem)) {
     sel.value = editItem;
     document.getElementById('expense-item').value = '';
-  } else if (data.category === '고정비') {
-    sel.value = 'custom';
-    document.getElementById('expense-item').value = editItem;
   } else {
     sel.value = '관리비';
     document.getElementById('expense-item').value = editItem;
@@ -1125,8 +1220,8 @@ function fillFormWithExpense(data) {
   document.getElementById('expense-amount').value = data.amount > 0 ? data.amount.toLocaleString('ko-KR') : '';
   document.getElementById('expense-memo').value = data.memo || '';
   document.getElementById('memo-count').textContent = (data.memo || '').length;
-  updateUserButtons();
-  updateCategoryButtons();
+  updateUserSeg();
+  updateCategoryForm();
   updateDatePills();
   updateItemSuggestions();
   document.getElementById('edit-banner').classList.add('show');
@@ -1258,7 +1353,7 @@ function renderMonthlyExpenses(data) {
         '<div class="expense-icon" style="width:36px;height:36px;font-size:16px">' + (CATEGORY_EMOJI[item.category]||'📦') + '</div>' +
         '<div class="expense-info">' +
           '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-          '<span class="user-pill ' + (item.user==='남편'?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span>' +
+          '<span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span>' +
         '</div>' +
         '<div class="expense-right">' +
           '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
@@ -1486,28 +1581,36 @@ document.addEventListener('DOMContentLoaded', function() {
   // 오프라인 바
   document.getElementById('offline-bar').addEventListener('click', retrySendPending);
 
-  // 사용자 버튼
-  document.getElementById('btn-husband').addEventListener('click', function() {
-    state.selectedUser = '남편';
-    localStorage.setItem('lastUser', '남편');
-    updateUserButtons();
-    if (!state.categoryManuallySet) {
-      state.selectedCategory = localStorage.getItem('lastCategory_남편') || null;
-      updateCategoryButtons();
-    }
-    updateItemSuggestions();
-    clearError('user-error', [document.getElementById('btn-husband'), document.getElementById('btn-wife')]);
+  // 사용자 Segmented Control
+  document.querySelectorAll('#seg-user .seg-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      state.selectedUser = this.dataset.user;
+      localStorage.setItem('lastUser', state.selectedUser);
+      updateUserSeg();
+      if (!state.categoryManuallySet) {
+        var lastCat = localStorage.getItem('lastCategory_' + state.selectedUser);
+        if (lastCat) {
+          state.selectedMajorCat = catToMajor(lastCat);
+          var sub = document.getElementById('expense-subcat');
+          if (state.selectedMajorCat === '생활비' && sub) sub.value = lastCat;
+        } else {
+          state.selectedMajorCat = null;
+        }
+        updateCategoryForm();
+      }
+      updateItemSuggestions();
+      clearError('user-error', Array.from(document.querySelectorAll('#seg-user .seg-btn')));
+    });
   });
-  document.getElementById('btn-wife').addEventListener('click', function() {
-    state.selectedUser = '아내';
-    localStorage.setItem('lastUser', '아내');
-    updateUserButtons();
-    if (!state.categoryManuallySet) {
-      state.selectedCategory = localStorage.getItem('lastCategory_아내') || null;
-      updateCategoryButtons();
-    }
-    updateItemSuggestions();
-    clearError('user-error', [document.getElementById('btn-husband'), document.getElementById('btn-wife')]);
+
+  // 분류 Segmented Control
+  document.querySelectorAll('#seg-major .seg-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      state.selectedMajorCat = this.dataset.major;
+      state.categoryManuallySet = true;
+      clearError('category-error', Array.from(document.querySelectorAll('#seg-major .seg-btn')));
+      updateCategoryForm();
+    });
   });
 
   // 날짜 빠른 pill
@@ -1554,38 +1657,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('memo-count').textContent = this.value.length;
   });
 
-  // 고정비 항목 드롭다운 — 직접입력 선택 시 텍스트 인풋으로 전환
+  // 고정비 항목 드롭다운
   document.getElementById('expense-item-select').addEventListener('change', function() {
     clearError('item-error', [this, document.getElementById('expense-item')]);
-    if (this.value === 'custom') {
-      this.style.display = 'none';
-      var input = document.getElementById('expense-item');
-      input.style.display = '';
-      input.value = '';
-      input.focus();
-    }
   });
 
-  // 항목명 자동완성 카테고리 제안
-  document.getElementById('expense-item').addEventListener('change', function() {
-    if (!state.categoryManuallySet) {
-      var cat = getCategoryByItem(this.value.trim());
-      if (cat && CATEGORIES.includes(cat)) {
-        state.selectedCategory = cat;
-        updateCategoryButtons();
-      }
-    }
-    clearError('item-error', [this]);
-  });
+  // 항목명 입력
   document.getElementById('expense-item').addEventListener('input', function() {
     clearError('item-error', [this]);
-    if (!state.categoryManuallySet) {
-      var cat = getCategoryByItem(this.value.trim());
-      if (cat && CATEGORIES.includes(cat)) {
-        state.selectedCategory = cat;
-        updateCategoryButtons();
-      }
-    }
+  });
+  document.getElementById('expense-item').addEventListener('change', function() {
+    clearError('item-error', [this]);
   });
 
   // 저장 버튼
@@ -1669,8 +1751,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pin-overlay').classList.remove('show');
     checkOfflineBar();
     showTab('home');
-    buildCategoryGrid();
-    updateUserButtons();
+    updateUserSeg();
     document.getElementById('expense-date').value = todayStr();
     updateDatePills();
   }
