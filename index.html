@@ -447,18 +447,18 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         <div id="svg-tooltip" class="svg-tooltip" style="display:none"></div>
       </div>
 
-      <div class="section-header">월별 요약</div>
+      <div class="section-header" style="display:flex;align-items:baseline;gap:8px">월별 요약<span style="font-size:var(--text-micro);font-weight:var(--fw-regular);color:#8E8E93;letter-spacing:0">(단위: 원)</span></div>
       <div class="annual-matrix-wrap">
         <table class="annual-matrix" id="annual-matrix">
           <thead>
             <tr>
               <th>월</th>
-              <th>생활비(원)</th>
-              <th>관리비(원)</th>
-              <th>도시가스(원)</th>
-              <th>수도요금(원)</th>
-              <th>세금(원)</th>
-              <th class="col-total">합계(원)</th>
+              <th>생활비</th>
+              <th>관리비</th>
+              <th>도시가스</th>
+              <th>수도요금</th>
+              <th>세금</th>
+              <th class="col-total">합계</th>
             </tr>
           </thead>
           <tbody id="annual-matrix-body"></tbody>
