@@ -4,7 +4,6 @@
 
 // 시트 이름 상수 (SPREADSHEET_ID는 PropertiesService에 저장)
 const RAW_SHEET = 'RAW_DATA';
-const FIXED_SHEET = 'FIXED_EXPENSES';
 const CACHE_DURATION_SEC = 30;
 const ALLOWED_USERS = ['남편', '아내'];
 const ALLOWED_CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
@@ -96,10 +95,9 @@ function doGet(e) {
     if (action === 'getMonthlySummary')       return jsonResponse(getMonthlySummary(+p.year, +p.month));
     if (action === 'getRecentExpenses')        return jsonResponse(getRecentExpenses(+(p.limit || 10)));
     if (action === 'getExpenses')              return jsonResponse(getExpenses(+p.year, +p.month));
-    if (action === 'getFixedExpense')          return jsonResponse(getFixedExpense(+p.year, +p.month));
-    if (action === 'getPrevMonthFixedExpense') return jsonResponse(getPrevMonthFixedExpense(+p.year, +p.month));
-    if (action === 'getYearlySummary')         return jsonResponse(getYearlySummary(+p.year));
-    if (action === 'getAvailableYears')        return jsonResponse(getAvailableYears());
+    if (action === 'getYearlySummary')              return jsonResponse(getYearlySummary(+p.year));
+    if (action === 'getAvailableYears')             return jsonResponse(getAvailableYears());
+    if (action === 'getYearlyFixedBreakdown')       return jsonResponse(getYearlyFixedBreakdown(+p.year));
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
     return jsonResponse({ success: false, error: err.message });
@@ -118,10 +116,9 @@ function doPost(e) {
 
   var action = payload.action || '';
   try {
-    if (action === 'addExpense')       return jsonResponse(addExpense(payload.data));
-    if (action === 'updateExpense')    return jsonResponse(updateExpense(payload.rowIndex, payload.data));
-    if (action === 'deleteExpense')    return jsonResponse(deleteExpense(payload.rowIndex));
-    if (action === 'saveFixedExpense') return jsonResponse(saveFixedExpense(payload.year, payload.month, payload.data));
+    if (action === 'addExpense')    return jsonResponse(addExpense(payload.data));
+    if (action === 'updateExpense') return jsonResponse(updateExpense(payload.rowIndex, payload.data));
+    if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.rowIndex));
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
     return jsonResponse({ success: false, error: err.message });
@@ -350,91 +347,6 @@ function getRecentExpenses(limit) {
 }
 
 // ====================================================
-// 고정 지출 함수
-// ====================================================
-
-/**
- * 해당 월 고정비 조회
- */
-function getFixedExpense(year, month) {
-  try {
-    const sheet = getSheet(FIXED_SHEET);
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) {
-      return { success: true, data: { management_fee: 0, gas: 0, water: 0, tax_label: '', tax_amount: 0, exists: false } };
-    }
-
-    const values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
-    for (let i = 0; i < values.length; i++) {
-      const row = values[i];
-      if (parseInt(row[0], 10) === year && parseInt(row[1], 10) === month) {
-        return {
-          success: true,
-          data: {
-            management_fee: parseInt(row[2], 10) || 0,
-            gas: parseInt(row[3], 10) || 0,
-            water: parseInt(row[4], 10) || 0,
-            tax_label: row[5] || '',
-            tax_amount: parseInt(row[6], 10) || 0,
-            exists: true
-          }
-        };
-      }
-    }
-
-    return { success: true, data: { management_fee: 0, gas: 0, water: 0, tax_label: '', tax_amount: 0, exists: false } };
-  } catch (e) {
-    return { success: false, error: e.message };
-  }
-}
-
-/**
- * 전월 고정비 조회
- */
-function getPrevMonthFixedExpense(year, month) {
-  const prevYear = month === 1 ? year - 1 : year;
-  const prevMonth = month === 1 ? 12 : month - 1;
-  return getFixedExpense(prevYear, prevMonth);
-}
-
-/**
- * 고정비 저장 (upsert)
- */
-function saveFixedExpense(year, month, data) {
-  try {
-    let mgmt = clampAmount(parseAmount(data.management_fee));
-    let gas = clampAmount(parseAmount(data.gas));
-    let water = clampAmount(parseAmount(data.water));
-    let taxLabel = sanitizeString(data.tax_label || '', 50);
-    let taxAmount = taxLabel === '' ? 0 : clampAmount(parseAmount(data.tax_amount));
-
-    const updatedAt = new Date().toISOString();
-    const sheet = getSheet(FIXED_SHEET);
-    const lastRow = sheet.getLastRow();
-
-    // 기존 행 탐색
-    if (lastRow >= 2) {
-      const values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-      for (let i = 0; i < values.length; i++) {
-        if (parseInt(values[i][0], 10) === year && parseInt(values[i][1], 10) === month) {
-          sheet.getRange(i + 2, 3, 1, 6).setValues([[mgmt, gas, water, taxLabel, taxAmount, updatedAt]]);
-          invalidateCache(year, month);
-          return { success: true };
-        }
-      }
-    }
-
-    // 없으면 새 행 추가
-    sheet.appendRow([year, month, mgmt, gas, water, taxLabel, taxAmount, updatedAt]);
-    invalidateCache(year, month);
-
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.message };
-  }
-}
-
-// ====================================================
 // 통계 함수
 // ====================================================
 
@@ -622,21 +534,50 @@ function getAvailableYears() {
       });
     }
 
-    const fixedSheet = getSheet(FIXED_SHEET);
-    const fixedLastRow = fixedSheet.getLastRow();
-    if (fixedLastRow >= 2) {
-      const years = fixedSheet.getRange(2, 1, fixedLastRow - 1, 1).getValues();
-      years.forEach(function(row) {
-        const y = parseInt(row[0], 10);
-        if (y > 2000 && y <= currentYear + 1) yearSet[y] = true;
-      });
-    }
-
     let years = Object.keys(yearSet).map(Number);
     if (years.length === 0) years = [currentYear];
     years.sort((a, b) => b - a);
 
     return { success: true, years: years };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ====================================================
+// 연간 고정비 항목별 매트릭스
+// ====================================================
+
+function getYearlyFixedBreakdown(year) {
+  try {
+    const ITEMS = ['관리비', '도시가스', '수도요금', '세금'];
+    const sheet = getSheet(RAW_SHEET);
+    const lastRow = sheet.getLastRow();
+    const result = {};
+    for (let m = 1; m <= 12; m++) {
+      result[m] = { month: m, 관리비: 0, 도시가스: 0, 수도요금: 0, 세금: 0 };
+    }
+    if (lastRow < 2) return { success: true, months: Object.values(result) };
+
+    const rows = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      const dateVal = row[0];
+      if (!dateVal) continue;
+      const dateStr = typeof dateVal === 'string' ? dateVal
+        : Utilities.formatDate(new Date(dateVal), 'Asia/Seoul', 'yyyy-MM-dd');
+      if (parseInt(dateStr.slice(0, 4), 10) !== year) continue;
+      const month = parseInt(dateStr.slice(5, 7), 10);
+      if (month < 1 || month > 12) continue;
+      const category = String(row[2]).trim();
+      if (category !== '고정비') continue;
+      const item = String(row[1]).trim();
+      const amount = parseInt(row[4], 10) || 0;
+      ITEMS.forEach(function(name) {
+        if (item.includes(name)) result[month][name] += amount;
+      });
+    }
+    return { success: true, months: Object.values(result) };
   } catch (e) {
     return { success: false, error: e.message };
   }

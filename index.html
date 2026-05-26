@@ -235,20 +235,18 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 #annual-svg{width:100%;height:auto;display:block}
 /* ═══════════════════════════════════ ANNUAL MATRIX ═══ */
 .annual-matrix-wrap{margin:0 0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.annual-matrix-wrap::-webkit-scrollbar{height:3px}
+.annual-matrix-wrap::-webkit-scrollbar{height:2px}
 .annual-matrix-wrap::-webkit-scrollbar-track{background:transparent}
 .annual-matrix-wrap::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:2px}
-.annual-matrix{width:max-content;min-width:100%;border-collapse:collapse;font-size:var(--text-micro);white-space:nowrap}
-.annual-matrix th{padding:10px 14px;background:var(--surface-2);color:var(--text-muted);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid var(--border-mid);text-align:right}
-.annual-matrix th:first-child{text-align:center}
-.annual-matrix td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text-sub);text-align:right;font-variant-numeric:tabular-nums}
-.annual-matrix td:first-child{text-align:center;color:var(--text-muted)}
-.annual-matrix td.amount-zero{color:var(--text-muted)}
-.annual-matrix th:first-child,.annual-matrix td:first-child{position:sticky;left:0;background:var(--surface-2);z-index:1}
-.annual-matrix tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
-.annual-matrix tr:nth-child(even) td:first-child{background:color-mix(in srgb,var(--surface-2) 93%,white 7%)}
+.annual-matrix{width:max-content;min-width:100%;border-collapse:collapse;white-space:nowrap}
+.annual-matrix th{padding:9px 16px;background:transparent;color:#8E8E93;font-size:var(--text-caption);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
+.annual-matrix th:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:2}
+.annual-matrix td{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-sub);font-size:var(--text-body);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
+.annual-matrix td:first-child{text-align:left;color:var(--text-muted);position:sticky;left:0;background:var(--bg);z-index:1}
+.annual-matrix td.amount-zero{color:rgba(245,245,247,0.16)}
 .annual-matrix td.col-total,.annual-matrix th.col-total{color:var(--text)!important;font-weight:var(--fw-semibold)}
-.annual-matrix tr.matrix-footer td{font-weight:var(--fw-bold);border-top:1px solid var(--border-mid);border-bottom:none;color:var(--text)}
+.annual-matrix tr.matrix-footer td{font-weight:var(--fw-semibold);border-top:1px solid rgba(255,255,255,0.08);border-bottom:none;color:#FFFFFF}
+.annual-matrix tr.matrix-footer td:first-child{background:var(--bg)}
 
 /* ══════════════════════════════════ EMPTY STATE ═══ */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;text-align:center}
