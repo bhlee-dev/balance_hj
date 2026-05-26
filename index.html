@@ -453,12 +453,12 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <thead>
             <tr>
               <th>월</th>
-              <th>생활비</th>
-              <th>관리비</th>
-              <th>도시가스</th>
-              <th>수도요금</th>
-              <th>세금</th>
-              <th class="col-total">합계</th>
+              <th>생활비(원)</th>
+              <th>관리비(원)</th>
+              <th>도시가스(원)</th>
+              <th>수도요금(원)</th>
+              <th>세금(원)</th>
+              <th class="col-total">합계(원)</th>
             </tr>
           </thead>
           <tbody id="annual-matrix-body"></tbody>
@@ -567,6 +567,10 @@ function escHtml(str) {
 
 function formatMoney(n) {
   return Number(n || 0).toLocaleString('ko-KR') + '원';
+}
+
+function formatNum(n) {
+  return Number(n || 0).toLocaleString('ko-KR');
 }
 
 function formatMoneyShort(n) {
@@ -1445,23 +1449,23 @@ function renderAnnualMatrix(months, fixedMonths) {
     FIXED_BREAKDOWN_ITEMS.forEach(function(n) { totFixed[n] += (fd[n] || 0); });
 
     var zeroTd = function(v) {
-      return '<td class="' + (v > 0 ? '' : 'amount-zero') + '">' + (v > 0 ? formatMoney(v) : '–') + '</td>';
+      return '<td class="' + (v > 0 ? '' : 'amount-zero') + '">' + (v > 0 ? formatNum(v) : '–') + '</td>';
     };
     return '<tr>' +
       '<td>' + m.month + '월</td>' +
       zeroTd(m.living) +
       FIXED_BREAKDOWN_ITEMS.map(function(n) { return zeroTd(fd[n] || 0); }).join('') +
-      '<td class="col-total">' + (m.total > 0 ? formatMoney(m.total) : '–') + '</td>' +
+      '<td class="col-total">' + (m.total > 0 ? formatNum(m.total) : '–') + '</td>' +
     '</tr>';
   }).join('');
 
   html += '<tr class="matrix-footer">' +
     '<td>합계</td>' +
-    '<td>' + formatMoney(totLiving) + '</td>' +
+    '<td>' + formatNum(totLiving) + '</td>' +
     FIXED_BREAKDOWN_ITEMS.map(function(n) {
-      return '<td>' + (totFixed[n] > 0 ? formatMoney(totFixed[n]) : '–') + '</td>';
+      return '<td>' + (totFixed[n] > 0 ? formatNum(totFixed[n]) : '–') + '</td>';
     }).join('') +
-    '<td class="col-total">' + formatMoney(totAll) + '</td>' +
+    '<td class="col-total">' + formatNum(totAll) + '</td>' +
   '</tr>';
 
   tbody.innerHTML = html;
