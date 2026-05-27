@@ -1624,7 +1624,7 @@ function showAnnualTooltip(e, bar) {
   tooltip.style.left = left + 'px';
   tooltip.style.top = top + 'px';
   clearTimeout(_tooltipTimeout);
-  _tooltipTimeout = setTimeout(function(){ tooltip.style.display='none'; }, 2500);
+  _tooltipTimeout = setTimeout(function(){ tooltip.style.display='none'; }, 5000);
 }
 
 function positionTooltip(tooltip, rect) {
@@ -1642,7 +1642,7 @@ function showTaxMemoTooltip(cell, year, month) {
   tooltip.style.display = 'block';
   positionTooltip(tooltip, cell.getBoundingClientRect());
   clearTimeout(_tooltipTimeout);
-  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 4000);
+  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 6000);
 
   var expKey = 'expenses_' + year + '_' + month;
   var cached = getCached(expKey);
@@ -1666,7 +1666,7 @@ function _applyTaxTooltip(tooltip, cell, month, expenses) {
   tooltip.innerHTML = '<strong>' + month + '월 세금</strong>&nbsp;&nbsp;' + formatMoney(total) + '<br>' + lines.join('<br>');
   positionTooltip(tooltip, cell.getBoundingClientRect());
   clearTimeout(_tooltipTimeout);
-  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 3000);
+  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 5000);
 }
 
 function renderAnnualMatrix(months, fixedMonths) {
