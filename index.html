@@ -1485,14 +1485,25 @@ function renderMonthlyFixedBreakdown(expenses) {
 }
 
 function quickRecordFixed(itemName) {
+  var ctxYear = state.monthlyYear, ctxMonth = state.monthlyMonth;
   state.editingRowIndex = null;
-  showTab('record');              // initRecordTab → resetForm 순서로 실행된 뒤
+  showTab('record');              // initRecordTab → resetForm → date = todayStr()
   state.selectedMajorCat = '고정비';
   state.categoryManuallySet = true;
   updateCategoryForm();           // 고정비 드롭다운 노출
   var sel = document.getElementById('expense-item-select');
   if (sel) sel.value = itemName;
   updateTaxChips();
+
+  // 시간 맥락 유지: 현재 달이 아닌 다른 달에서 넘어왔으면 해당 월 말일로 날짜 세팅
+  var now = new Date();
+  if (ctxYear !== now.getFullYear() || ctxMonth !== now.getMonth() + 1) {
+    var lastDay = new Date(ctxYear, ctxMonth, 0); // 1-indexed month → day 0 = 전달 말일
+    var dateStr = ctxYear + '-' + String(ctxMonth).padStart(2, '0') + '-' + String(lastDay.getDate()).padStart(2, '0');
+    document.getElementById('expense-date').value = dateStr;
+    updateDatePills(); // 어제/오늘 버튼 비활성화
+  }
+
   setTimeout(function() {
     var amt = document.getElementById('expense-amount');
     if (amt) { amt.focus(); amt.select(); }
