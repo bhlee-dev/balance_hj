@@ -276,6 +276,8 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 
 /* ════════════════════════════════════════ TOOLTIP ═══ */
 .svg-tooltip{position:fixed;background:var(--surface-2);border:1px solid var(--border-mid);color:var(--text);border-radius:var(--radius-sm);padding:10px 12px;font-size:var(--text-micro);font-weight:var(--fw-regular);pointer-events:none;z-index:200;white-space:nowrap;transform:translateX(-50%);box-shadow:0 4px 20px rgba(0,0,0,.40)}
+.tax-cell{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--text-muted);-webkit-tap-highlight-color:transparent;transition:opacity 0.1s}
+.tax-cell:active{opacity:0.5}
 
 /* ══════════════════════════════ HOME SUMMARY CARD ═══ */
 #home-summary-card{background:var(--surface-1);border-radius:var(--radius-xl);padding:34px 28px;margin:20px 16px 12px;border:1px solid var(--border);box-shadow:0 8px 48px rgba(0,0,0,0.50),0 2px 12px rgba(0,0,0,0.30)}
@@ -1625,6 +1627,48 @@ function showAnnualTooltip(e, bar) {
   _tooltipTimeout = setTimeout(function(){ tooltip.style.display='none'; }, 2500);
 }
 
+function positionTooltip(tooltip, rect) {
+  var cx = rect.left + rect.width / 2;
+  var above = rect.top - tooltip.offsetHeight - 8;
+  var top = above >= 8 ? above : rect.bottom + 8;
+  var halfW = tooltip.offsetWidth / 2;
+  tooltip.style.left = Math.min(Math.max(cx, halfW + 8), window.innerWidth - halfW - 8) + 'px';
+  tooltip.style.top = top + 'px';
+}
+
+function showTaxMemoTooltip(cell, year, month) {
+  var tooltip = document.getElementById('svg-tooltip');
+  tooltip.innerHTML = '<strong>' + month + '월 세금</strong><br>불러오는 중…';
+  tooltip.style.display = 'block';
+  positionTooltip(tooltip, cell.getBoundingClientRect());
+  clearTimeout(_tooltipTimeout);
+  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 4000);
+
+  var expKey = 'expenses_' + year + '_' + month;
+  var cached = getCached(expKey);
+  if (cached) { _applyTaxTooltip(tooltip, cell, month, cached); return; }
+
+  callAPI('getExpenses', {year: year, month: month}).then(function(res) {
+    if (res && res.success) {
+      setCached(expKey, res.data);
+      _applyTaxTooltip(tooltip, cell, month, res.data);
+    }
+  });
+}
+
+function _applyTaxTooltip(tooltip, cell, month, expenses) {
+  var taxes = (expenses || []).filter(function(e) { return e.item && e.item.includes('세금'); });
+  if (!taxes.length) { tooltip.style.display = 'none'; return; }
+  var total = taxes.reduce(function(s, e) { return s + (e.amount || 0); }, 0);
+  var lines = taxes.map(function(e) {
+    return '↳ ' + escHtml(e.memo || '세금') + '&nbsp;&nbsp;' + formatMoney(e.amount);
+  });
+  tooltip.innerHTML = '<strong>' + month + '월 세금</strong>&nbsp;&nbsp;' + formatMoney(total) + '<br>' + lines.join('<br>');
+  positionTooltip(tooltip, cell.getBoundingClientRect());
+  clearTimeout(_tooltipTimeout);
+  _tooltipTimeout = setTimeout(function(){ tooltip.style.display = 'none'; }, 3000);
+}
+
 function renderAnnualMatrix(months, fixedMonths) {
   var head = document.getElementById('annual-matrix-head');
   var tbody = document.getElementById('annual-matrix-body');
@@ -1657,7 +1701,11 @@ function renderAnnualMatrix(months, fixedMonths) {
       var fd = fixedMap[m.month] || {};
       FIXED_BREAKDOWN_ITEMS.forEach(function(n) { totFixed[n] += (fd[n] || 0); });
       return '<tr><td>' + m.month + '월</td>' +
-        FIXED_BREAKDOWN_ITEMS.map(function(n) { return zeroTd(fd[n] || 0); }).join('') +
+        FIXED_BREAKDOWN_ITEMS.map(function(n) {
+          var v = fd[n] || 0;
+          if (n === '세금' && v > 0) return '<td class="tax-cell" data-month="' + m.month + '">' + formatNum(v) + '</td>';
+          return zeroTd(v);
+        }).join('') +
       '</tr>';
     }).join('');
 
@@ -1826,6 +1874,13 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // 연간 뷰 토글
+  // 연간 세금 셀 툴팁
+  document.getElementById('annual-matrix-body').addEventListener('click', function(e) {
+    var cell = e.target.closest('.tax-cell');
+    if (!cell) return;
+    showTaxMemoTooltip(cell, state.annualYear, parseInt(cell.dataset.month));
+  });
+
   document.getElementById('annual-view-seg').addEventListener('click', function(e) {
     var btn = e.target.closest('.seg-btn');
     if (!btn || btn.dataset.view === state.annualView) return;
