@@ -1620,7 +1620,7 @@ function renderAnnualChart(months) {
   svg.innerHTML = legend + bars;
 
   svg.querySelectorAll('.annual-bar').forEach(function(bar) {
-    bar.addEventListener('click', function(e) { showAnnualTooltip(e, this); });
+    bar.addEventListener('click', function(e) { e.stopPropagation(); showAnnualTooltip(e, this); });
   });
 }
 
@@ -1893,6 +1893,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('annual-matrix-body').addEventListener('click', function(e) {
     var cell = e.target.closest('.tax-cell');
     if (!cell) return;
+    e.stopPropagation();
     showTaxMemoTooltip(cell, state.annualYear, parseInt(cell.dataset.month));
   });
 
@@ -2010,6 +2011,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pin-overlay').classList.add('show');
     setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
   }
+
+  document.addEventListener('click', function() {
+    var tooltip = document.getElementById('svg-tooltip');
+    if (tooltip && tooltip.style.display !== 'none') {
+      tooltip.style.display = 'none';
+      clearTimeout(_tooltipTimeout);
+    }
+  });
 });
 </script>
 </body>
