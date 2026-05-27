@@ -90,6 +90,8 @@ body{display:flex;flex-direction:column;align-items:stretch}
 /* ═══════════════════════════════════════════ OFFLINE BAR ═══ */
 #offline-bar{display:none;background:rgba(200,162,74,0.09);color:var(--warning);border-bottom:1px solid rgba(200,162,74,0.16);font-size:var(--text-caption);font-weight:var(--fw-medium);padding:10px 20px;text-align:center;cursor:pointer;position:sticky;top:0;z-index:200}
 #offline-bar.show{display:block}
+#toast{position:fixed;top:max(env(safe-area-inset-top,0px) + 16px,20px);left:50%;transform:translateX(-50%) translateY(calc(-100% - 8px));opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;z-index:500;background:rgba(28,28,30,0.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:999px;color:#F5F5F7;font-size:var(--text-caption);font-weight:var(--fw-medium);padding:11px 20px;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ════════════════════════════════════════════════ HEADER ═══ */
 #app-header{height:54px;background:rgba(17,17,18,0.82);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:100;flex-shrink:0}
@@ -321,6 +323,8 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .char-counter{text-align:right;font-size:var(--text-micro);color:var(--text-muted);margin-top:5px}
 @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .slide-in{animation:slideIn .22s ease-out both}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.btn-shake{animation:shake .45s ease-in-out}
 .select-on-focus::selection{background:var(--accent-bg)}
 
 /* ══════════════════════════════════ PIN OVERLAY ═══ */
@@ -345,6 +349,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 <div id="app">
   <!-- 오프라인 알림 바 -->
   <div id="offline-bar" role="alert"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <!-- 상단 헤더 -->
   <header id="app-header">
@@ -1213,7 +1218,7 @@ async function onSaveExpense() {
         }
       });
     } else {
-      setBtnError((res && res.error) || '저장 실패. 다시 시도해주세요.');
+      setBtnError((res && res.error) || '네트워크 오류가 발생했습니다.');
       // 서버가 명시적으로 거부한 경우(res 존재)는 큐잉 안 함 — 재시도해도 동일 실패
       if (!res) {
         var pending = getPending();
@@ -1223,7 +1228,7 @@ async function onSaveExpense() {
       }
     }
   } catch(e) {
-    setBtnError('저장 실패. 다시 시도해주세요.');
+    setBtnError('네트워크 오류가 발생했습니다.');
     var pending = getPending();
     pending.push(data);
     setPending(pending);
@@ -1234,43 +1239,46 @@ async function onSaveExpense() {
 function setBtnLoading(on) {
   state.isLoading = on;
   var btn = document.getElementById('save-btn');
-  btn.disabled = on;
   btn.textContent = on ? '저장 중...' : (state.editingRowIndex ? '수정하기' : '저장하기');
+  btn.style.opacity = on ? '0.7' : '';
+  btn.style.pointerEvents = on ? 'none' : '';
+}
+
+var _toastTimer = null;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
 function showSaveSuccess(cb) {
+  state.isLoading = false;
   var btn = document.getElementById('save-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="btn-check-svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline id="check-path" points="6,16 13,23 26,9"/></svg>';
-  // stroke-dashoffset 애니메이션
-  var path = btn.querySelector('#check-path');
-  if (path) {
-    var len = 30;
-    path.style.strokeDasharray = len;
-    path.style.strokeDashoffset = len;
-    path.style.transition = 'stroke-dashoffset 600ms ease-out';
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() { path.style.strokeDashoffset = '0'; });
-    });
-  }
+  btn.textContent = '✓ 완료';
+  btn.style.opacity = '';
+  btn.style.pointerEvents = 'none';
+  showToast(state.editingRowIndex ? '수정되었습니다.' : '기록이 추가되었습니다.');
   setTimeout(function() {
-    state.isLoading = false;
-    btn.disabled = false;
-    btn.innerHTML = state.editingRowIndex ? '수정하기' : '저장하기';
+    btn.textContent = state.editingRowIndex ? '수정하기' : '저장하기';
+    btn.style.pointerEvents = '';
     if (cb) cb();
-  }, 1100);
+  }, 1500);
 }
 
 function setBtnError(msg) {
   state.isLoading = false;
   var btn = document.getElementById('save-btn');
-  btn.disabled = false;
-  btn.style.background = 'var(--danger)';
-  btn.textContent = msg;
+  btn.style.opacity = '';
+  btn.style.pointerEvents = '';
+  btn.textContent = '✕ 실패';
+  btn.classList.add('btn-shake');
+  btn.addEventListener('animationend', function() { btn.classList.remove('btn-shake'); }, { once: true });
+  showToast(msg || '네트워크 오류가 발생했습니다.');
   setTimeout(function() {
-    btn.style.background = '';
     btn.textContent = state.editingRowIndex ? '수정하기' : '저장하기';
-  }, 3000);
+  }, 2000);
 }
 
 function resetForm() {
