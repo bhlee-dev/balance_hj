@@ -214,7 +214,8 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 
 /* ═══════════════════════════════════════ MONTH NAV ═══ */
 .month-nav{display:flex;align-items:center;justify-content:space-between;padding:26px 22px 14px}
-.month-nav-title{font-size:var(--text-h2);font-weight:var(--fw-semibold);letter-spacing:var(--ls-normal)}
+.month-nav-title{font-size:var(--text-h2);font-weight:var(--fw-semibold);letter-spacing:var(--ls-normal);cursor:pointer;display:inline-flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
+.month-nav-title::after{content:'';display:block;width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);opacity:.4;flex-shrink:0;margin-top:2px}
 .nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-mid);background:var(--surface-2);color:var(--text-sub);cursor:pointer;font-size:var(--text-body);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:background .2s ease-in-out,opacity .2s ease-in-out}
 .nav-btn:active{background:var(--surface-3)}
 .nav-btn:disabled{opacity:.20;cursor:not-allowed}
@@ -327,6 +328,21 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 .btn-shake{animation:shake .45s ease-in-out}
 .select-on-focus::selection{background:var(--accent-bg)}
+
+/* ══════════════════════════════════ DATE PICKER SHEET ═══ */
+#datepicker-overlay{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:none;transition:background .25s ease}
+#datepicker-overlay.show{background:rgba(0,0,0,.52);pointer-events:auto}
+#datepicker-sheet{background:var(--surface-1);border-radius:24px 24px 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:12px 20px calc(36px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;transform:translateY(100%);transition:transform .28s cubic-bezier(0.32,0.72,0,1)}
+#datepicker-overlay.show #datepicker-sheet{transform:translateY(0)}
+.dp-handle{width:36px;height:4px;background:rgba(255,255,255,.16);border-radius:2px;margin:0 auto 20px}
+.dp-section-label{font-size:var(--text-micro);font-weight:var(--fw-medium);color:var(--text-muted);letter-spacing:var(--ls-wide);text-transform:uppercase;margin-bottom:10px}
+.dp-year-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:14px;margin-bottom:8px}
+.dp-year-scroll::-webkit-scrollbar{display:none}
+.dp-month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dp-chip{height:40px;border-radius:var(--radius-pill);border:1px solid var(--border-mid);background:var(--surface-2);color:var(--text-muted);font-size:var(--text-caption);font-weight:var(--fw-medium);cursor:pointer;font-family:inherit;white-space:nowrap;padding:0 18px;transition:background .15s ease,color .15s ease,border-color .15s ease;-webkit-tap-highlight-color:transparent}
+.dp-month-chip{padding:0;width:100%}
+.dp-chip.active{background:#FFFFFF;color:#000000;border-color:#FFFFFF}
+.dp-chip:disabled{opacity:.2;cursor:not-allowed}
 
 /* ══════════════════════════════════ PIN OVERLAY ═══ */
 #pin-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center}
@@ -1245,6 +1261,68 @@ function setBtnLoading(on) {
   btn.style.pointerEvents = on ? 'none' : '';
 }
 
+// ── Date Picker Bottom Sheet ─────────────────────────────
+var _dp = { mode: null, year: null, month: null };
+
+function openDatePicker(mode) {
+  _dp.mode  = mode;
+  _dp.year  = mode === 'monthly' ? state.monthlyYear  : state.annualYear;
+  _dp.month = mode === 'monthly' ? state.monthlyMonth : null;
+  renderDatePicker();
+  document.getElementById('datepicker-overlay').classList.add('show');
+}
+
+function closeDatePicker() {
+  document.getElementById('datepicker-overlay').classList.remove('show');
+}
+
+function renderDatePicker() {
+  var now = new Date();
+  var curYear = now.getFullYear(), curMonth = now.getMonth() + 1;
+
+  // 연도 목록: availableYears 로드됐으면 사용, 없으면 최근 4년 생성
+  var years;
+  if (state.availableYears.length > 0) {
+    years = state.availableYears.slice().sort(function(a, b) { return a - b; });
+  } else {
+    years = [];
+    for (var y = curYear - 3; y <= curYear; y++) years.push(y);
+  }
+
+  var yearScroll = document.getElementById('dp-year-scroll');
+  yearScroll.innerHTML = '';
+  years.forEach(function(y) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'dp-chip dp-year-chip' + (y === _dp.year ? ' active' : '');
+    chip.textContent = y + '년';
+    chip.dataset.year = y;
+    yearScroll.appendChild(chip);
+  });
+  requestAnimationFrame(function() {
+    var active = yearScroll.querySelector('.active');
+    if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  });
+
+  var monthSection = document.getElementById('dp-month-section');
+  if (_dp.mode === 'annual') { monthSection.style.display = 'none'; return; }
+  monthSection.style.display = '';
+
+  var monthGrid = document.getElementById('dp-month-grid');
+  monthGrid.innerHTML = '';
+  ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].forEach(function(name, i) {
+    var m = i + 1;
+    var isFuture = _dp.year > curYear || (_dp.year === curYear && m > curMonth);
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'dp-chip dp-month-chip' + (m === _dp.month ? ' active' : '');
+    chip.textContent = name;
+    chip.dataset.month = m;
+    chip.disabled = isFuture;
+    monthGrid.appendChild(chip);
+  });
+}
+
 var _toastTimer = null;
 function showToast(msg) {
   var t = document.getElementById('toast');
@@ -2005,6 +2083,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx > 0) { state.annualYear = years[idx-1]; loadAnnualData(); }
   });
 
+  // 날짜 선택 바텀 시트
+  document.getElementById('monthly-title').addEventListener('click', function() { openDatePicker('monthly'); });
+  document.getElementById('annual-title').addEventListener('click', function() { openDatePicker('annual'); });
+  document.getElementById('dp-year-scroll').addEventListener('click', function(e) {
+    var chip = e.target.closest('.dp-year-chip');
+    if (!chip) return;
+    _dp.year = parseInt(chip.dataset.year, 10);
+    if (_dp.mode === 'annual') {
+      state.annualYear = _dp.year;
+      closeDatePicker();
+      loadAnnualData();
+      return;
+    }
+    // 월간: 선택 연도가 올해이고 현재 달보다 미래 달이 선택돼 있으면 클램프
+    var now = new Date();
+    if (_dp.year === now.getFullYear() && _dp.month > now.getMonth() + 1) {
+      _dp.month = now.getMonth() + 1;
+    }
+    renderDatePicker();
+  });
+  document.getElementById('dp-month-grid').addEventListener('click', function(e) {
+    var chip = e.target.closest('.dp-month-chip');
+    if (!chip || chip.disabled) return;
+    state.monthlyYear  = _dp.year;
+    state.monthlyMonth = parseInt(chip.dataset.month, 10);
+    closeDatePicker();
+    loadMonthlyData();
+  });
+  document.getElementById('datepicker-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDatePicker();
+  });
+
   // 액션 시트
   document.getElementById('action-cancel-btn').addEventListener('click', closeActionSheet);
   document.getElementById('action-sheet-overlay').addEventListener('click', function(e) {
@@ -2110,5 +2220,18 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- ══ Date Picker Bottom Sheet ══ -->
+<div id="datepicker-overlay">
+  <div id="datepicker-sheet">
+    <div class="dp-handle"></div>
+    <div class="dp-section-label">연도</div>
+    <div class="dp-year-scroll" id="dp-year-scroll"></div>
+    <div id="dp-month-section">
+      <div class="dp-section-label">월</div>
+      <div class="dp-month-grid" id="dp-month-grid"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
