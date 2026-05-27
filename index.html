@@ -131,6 +131,7 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .user-pill{display:inline-block;padding:2px 9px;border-radius:var(--radius-pill);font-size:var(--text-micro);font-weight:var(--fw-medium)}
 .pill-husband{background:var(--husband-bg);color:var(--husband)}
 .pill-wife{background:var(--wife-bg);color:var(--wife)}
+.pill-common{background:rgba(255,255,255,0.07);color:rgba(245,245,247,0.52)}
 
 /* ══════════════════════════════════════ HOME EXPENSE LIST ═══ */
 .expense-item{display:flex;justify-content:space-between;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--border)}
@@ -425,6 +426,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
             <div class="seg-ctrl" id="seg-user">
               <button class="seg-btn" data-user="희" type="button">희</button>
               <button class="seg-btn" data-user="정" type="button">정</button>
+              <button class="seg-btn active" id="seg-user-common" type="button" style="display:none">희정 (공통)</button>
             </div>
           </div>
           <div class="form-error" id="date-error" style="padding:0 16px 8px;margin:0"></div>
@@ -1043,6 +1045,7 @@ function effectiveCategory() {
 }
 
 function updateUserSeg() {
+  if (state.selectedUser === '희정') return; // 고정비 병합 상태는 updateUserSegForMajor가 처리
   document.querySelectorAll('#seg-user .seg-btn').forEach(function(btn) {
     btn.className = 'seg-btn' + (btn.dataset.user === state.selectedUser ? ' active' : '');
   });
@@ -1052,6 +1055,23 @@ function updateMajorCatSeg() {
   document.querySelectorAll('#seg-major .seg-btn').forEach(function(btn) {
     btn.className = 'seg-btn' + (btn.dataset.major === state.selectedMajorCat ? ' active' : '');
   });
+}
+
+function updateUserSegForMajor(major) {
+  var commonBtn = document.getElementById('seg-user-common');
+  var indivBtns = Array.from(document.querySelectorAll('#seg-user .seg-btn:not(#seg-user-common)'));
+  if (major === '고정비') {
+    indivBtns.forEach(function(b) { b.style.display = 'none'; });
+    if (commonBtn) commonBtn.style.display = '';
+    state.selectedUser = '희정';
+    var errEl = document.getElementById('user-error');
+    if (errEl) errEl.style.display = 'none';
+  } else {
+    indivBtns.forEach(function(b) { b.style.display = ''; });
+    if (commonBtn) commonBtn.style.display = 'none';
+    if (state.selectedUser === '희정') state.selectedUser = '희'; // 개인 선택으로 복구
+    updateUserSeg();
+  }
 }
 
 function updateCategoryForm() {
@@ -1073,6 +1093,7 @@ function updateCategoryForm() {
   }
   updateMajorCatSeg();
   updateTaxChips();
+  updateUserSegForMajor(major);
 }
 
 function updateTaxChips() {
@@ -1604,7 +1625,7 @@ function renderMonthlyExpenses(data) {
   var html = dates.map(function(date, di) {
     var dayTotal = groups[date].reduce(function(s,i){ return s+i.amount; }, 0);
     var items = groups[date].map(function(item, ii) {
-      var pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : 'pill-wife';
+      var pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : (item.user==='희정') ? 'pill-common' : 'pill-wife';
       return '<div class="expense-list-item slide-in" style="animation-delay:' + ((di*2+ii)*20) + 'ms">' +
         '<div class="ei-left">' +
           '<div class="ei-top">' +
