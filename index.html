@@ -498,7 +498,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
       <div class="section-header">월별 지출 추이</div>
       <div id="annual-chart-wrap" style="position:relative">
-        <svg id="annual-svg" viewBox="0 0 380 220" preserveAspectRatio="xMidYMid meet"></svg>
+        <svg id="annual-svg" viewBox="0 0 360 130" preserveAspectRatio="xMidYMid meet"></svg>
         <div id="svg-tooltip" class="svg-tooltip" style="display:none"></div>
       </div>
 
@@ -1505,55 +1505,29 @@ function renderAnnualSummary(s, fixedBreakdown) {
 
 function renderAnnualChart(months) {
   var svg = document.getElementById('annual-svg');
-  var W = 380, H = 220, PL = 48, PR = 10, PT = 16, PB = 32;
+  var W = 360, H = 130, PL = 10, PR = 10, PT = 8, PB = 22;
   var chartW = W - PL - PR, chartH = H - PT - PB;
   var maxVal = Math.max.apply(null, months.map(function(m){ return m.total; })) || 1;
-  var barW = Math.floor(chartW / 12 * 0.65);
-  var gap = Math.floor(chartW / 12);
-  var MIN_H = 4;
+  var gap = chartW / 12;
+  var barW = Math.floor(gap * 0.46);
+  var MIN_H = 3;
 
-  // Y축 눈금
-  var ticks = 4;
-  var tickStep = maxVal / ticks;
-  var yAxis = '';
-  for (var t = 0; t <= ticks; t++) {
-    var val = tickStep * t;
-    var y = PT + chartH - (val / maxVal * chartH);
-    yAxis += '<line x1="' + PL + '" y1="' + y.toFixed(1) + '" x2="' + (W-PR) + '" y2="' + y.toFixed(1) + '" stroke="var(--border)" stroke-width="1"/>';
-    yAxis += '<text x="' + (PL-6) + '" y="' + (y+4).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--text-muted)">' + formatMoneyShort(val) + '</text>';
-  }
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
-  // 바
   var bars = '';
   months.forEach(function(m, i) {
     var x = PL + i * gap + (gap - barW) / 2;
-    var livingH = maxVal > 0 ? Math.max(m.living / maxVal * chartH, m.living > 0 ? MIN_H : 0) : 0;
-    var fixedH = maxVal > 0 ? Math.max(m.fixed / maxVal * chartH, m.fixed > 0 ? MIN_H : 0) : 0;
-    var totalH = livingH + fixedH;
-    if (totalH === 0) { livingH = MIN_H; }
     var baseY = PT + chartH;
-
-    if (totalH === 0) {
-      bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - MIN_H).toFixed(1) + '" width="' + barW + '" height="' + MIN_H + '" fill="var(--border)" rx="2" data-month="' + m.month + '" data-total="' + m.total + '" data-living="' + m.living + '" data-fixed="' + m.fixed + '" class="annual-bar" style="cursor:pointer"/>';
-    } else {
-      if (fixedH > 0) {
-        bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - livingH - fixedH).toFixed(1) + '" width="' + barW + '" height="' + fixedH.toFixed(1) + '" fill="var(--fixed)" rx="2" data-month="' + m.month + '" data-total="' + m.total + '" data-living="' + m.living + '" data-fixed="' + m.fixed + '" class="annual-bar" style="cursor:pointer"/>';
-      }
-      if (livingH > 0) {
-        bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - livingH).toFixed(1) + '" width="' + barW + '" height="' + livingH.toFixed(1) + '" fill="var(--primary)" rx="2" data-month="' + m.month + '" data-total="' + m.total + '" data-living="' + m.living + '" data-fixed="' + m.fixed + '" class="annual-bar" style="cursor:pointer"/>';
-      }
-    }
-    // X축 레이블
-    bars += '<text x="' + (x + barW/2).toFixed(1) + '" y="' + (H - PB + 14) + '" text-anchor="middle" font-size="9" fill="var(--text-sub)">' + m.month + '월</text>';
+    var barH = m.total > 0 ? Math.max(m.total / maxVal * chartH, MIN_H) : MIN_H;
+    var fill = m.total > 0 ? 'var(--primary)' : 'var(--border)';
+    bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - barH).toFixed(1) + '" width="' + barW + '" height="' + barH.toFixed(1) + '" fill="' + fill + '" rx="3" data-month="' + m.month + '" data-total="' + m.total + '" data-living="' + m.living + '" data-fixed="' + m.fixed + '" class="annual-bar" style="cursor:pointer"/>';
+    bars += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (PT + chartH + 14) + '" text-anchor="middle" font-size="9" fill="var(--text-muted)">' + m.month + '월</text>';
   });
 
-  svg.innerHTML = yAxis + bars;
+  svg.innerHTML = bars;
 
-  // 바 클릭 → 툴팁
   svg.querySelectorAll('.annual-bar').forEach(function(bar) {
-    bar.addEventListener('click', function(e) {
-      showAnnualTooltip(e, this);
-    });
+    bar.addEventListener('click', function(e) { showAnnualTooltip(e, this); });
   });
 }
 
