@@ -202,6 +202,7 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .form-row-label{font-size:var(--text-caption);font-weight:var(--fw-medium);color:var(--text-sub);flex-shrink:0;white-space:nowrap;min-width:44px}
 .form-row-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 16px}
 .seg-ctrl{display:flex;background:rgba(255,255,255,0.10);border-radius:10px;padding:2px;gap:2px}
+.form-row .seg-ctrl{flex:1;min-width:0}
 .seg-btn{flex:1;height:32px;padding:0 14px;border:none;border-radius:8px;background:transparent;color:#8E8E93;font-size:var(--text-caption);font-weight:var(--fw-medium);cursor:pointer;font-family:inherit;transition:all 0.2s ease-in-out;white-space:nowrap;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
 .seg-btn.active{background:#FFFFFF;color:#121212}
 .seg-btn.error{outline:1.5px solid var(--danger)}
@@ -426,7 +427,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
             <div class="seg-ctrl" id="seg-user">
               <button class="seg-btn" data-user="희" type="button">희</button>
               <button class="seg-btn" data-user="정" type="button">정</button>
-              <button class="seg-btn active" id="seg-user-common" type="button" style="display:none">희정 (공통)</button>
+              <button class="seg-btn active" id="seg-user-common" type="button" style="display:none">희정</button>
             </div>
           </div>
           <div class="form-error" id="date-error" style="padding:0 16px 8px;margin:0"></div>
@@ -953,14 +954,22 @@ function renderHomeSummary(s) {
 }
 
 function renderHomeDashboard(curr, prev, ly, month) {
+  var now = new Date();
+  var todayDay = now.getDate();
   var livCats = ['식비','교통','생활','의료','여가'];
 
-  // ── 생활비 하이라이트 ─────────────────────────────────
-  var currLiv = {}, prevLiv = {};
-  livCats.forEach(function(c){ currLiv[c] = 0; prevLiv[c] = 0; });
-  (curr || []).forEach(function(e){ if (livCats.includes(e.category)) currLiv[e.category] += e.amount; });
-  (prev || []).forEach(function(e){ if (livCats.includes(e.category)) prevLiv[e.category] += e.amount; });
+  // ── 생활비 하이라이트 (MTD 비교) ──────────────────────
+  var currLiv = {}, prevLivMTD = {};
+  livCats.forEach(function(c){ currLiv[c] = 0; prevLivMTD[c] = 0; });
+  (curr || []).forEach(function(e){
+    if (livCats.includes(e.category)) currLiv[e.category] += e.amount;
+  });
+  (prev || []).forEach(function(e){
+    if (!livCats.includes(e.category)) return;
+    if (parseInt(e.date.slice(8,10), 10) <= todayDay) prevLivMTD[e.category] += e.amount;
+  });
 
+  var prevDataExists = (prev || []).length > 0;
   var topLiv = livCats
     .filter(function(c){ return currLiv[c] > 0; })
     .sort(function(a,b){ return currLiv[b] - currLiv[a]; })
@@ -969,15 +978,14 @@ function renderHomeDashboard(curr, prev, ly, month) {
   var livHtml = topLiv.length === 0
     ? '<div class="dash-compare flat" style="padding:4px 0 12px">이번 달 생활비 내역이 없어요.</div>'
     : topLiv.map(function(cat) {
-        var diff = currLiv[cat] - prevLiv[cat];
-        var hasPrev = prevLiv[cat] > 0;
-        var cmp = !hasPrev
+        var diff = currLiv[cat] - prevLivMTD[cat];
+        var cmp = !prevDataExists
           ? '<div class="dash-compare flat">지난달 데이터 없음</div>'
           : diff < 0
-            ? '<div class="dash-compare save">↘ 지난달보다 ' + formatNum(Math.abs(diff)) + '원 덜 썼어요</div>'
+            ? '<div class="dash-compare save">↘ 지난달 ' + todayDay + '일까지보다 ' + formatNum(Math.abs(diff)) + '원 덜 썼어요</div>'
             : diff > 0
-              ? '<div class="dash-compare over">↗ 지난달보다 ' + formatNum(diff) + '원 더 썼어요</div>'
-              : '<div class="dash-compare flat">지난달과 동일해요</div>';
+              ? '<div class="dash-compare over">↗ 지난달 ' + todayDay + '일까지보다 ' + formatNum(diff) + '원 더 썼어요</div>'
+              : '<div class="dash-compare flat">지난달 같은 날과 동일해요</div>';
         return '<div class="dash-row">' +
           '<div class="dash-row-left">' +
             '<span class="dash-row-icon">' + (CATEGORY_EMOJI[cat] || '📦') + '</span>' +
@@ -990,37 +998,55 @@ function renderHomeDashboard(curr, prev, ly, month) {
   document.getElementById('dash-living').innerHTML =
     '<div class="dash-title">생활비 하이라이트</div>' + livHtml;
 
-  // ── 주요 고정비 체크 ──────────────────────────────────
-  var currFixed = {}, lyFixed = {};
+  // ── 주요 고정비 체크 (납부 상태 + 주기 분리) ──────────
+  var currFixed = {}, prevFixed = {}, lyFixed = {};
   (curr || []).filter(function(e){ return e.category === '고정비'; })
     .forEach(function(e){ currFixed[e.item] = (currFixed[e.item] || 0) + e.amount; });
+  (prev || []).filter(function(e){ return e.category === '고정비'; })
+    .forEach(function(e){ prevFixed[e.item] = (prevFixed[e.item] || 0) + e.amount; });
   (ly || []).filter(function(e){ return e.category === '고정비'; })
     .forEach(function(e){ lyFixed[e.item] = (lyFixed[e.item] || 0) + e.amount; });
 
-  var topFixed = Object.keys(currFixed)
-    .sort(function(a,b){ return currFixed[b] - currFixed[a]; })
-    .slice(0, 3);
+  var paidItems   = FIXED_BREAKDOWN_ITEMS.filter(function(i){ return currFixed[i] > 0; });
+  var unpaidItems = FIXED_BREAKDOWN_ITEMS.filter(function(i){ return !(currFixed[i] > 0); });
+  var orderedItems = paidItems.concat(unpaidItems);
 
-  var fixHtml = topFixed.length === 0
-    ? '<div class="dash-compare flat" style="padding:4px 0 12px">이번 달 고정비 내역이 없어요.</div>'
-    : topFixed.map(function(item) {
-        var hasLY = item in lyFixed;
-        var diff = hasLY ? currFixed[item] - lyFixed[item] : null;
-        var cmp = !hasLY
-          ? '<div class="dash-compare flat">작년 데이터 없음</div>'
-          : diff < 0
-            ? '<div class="dash-compare save">↘ 작년 ' + month + '월보다 ' + formatNum(Math.abs(diff)) + '원 줄었어요</div>'
-            : diff > 0
-              ? '<div class="dash-compare over">↗ 작년 ' + month + '월보다 ' + formatNum(diff) + '원 올랐어요</div>'
-              : '<div class="dash-compare flat">작년 ' + month + '월과 동일해요</div>';
-        return '<div class="dash-row">' +
-          '<div class="dash-row-left">' +
-            '<span class="dash-row-icon">🏢</span>' +
-            '<div><div class="dash-row-name">' + escHtml(item) + '</div>' + cmp + '</div>' +
-          '</div>' +
-          '<div class="dash-row-right"><div class="dash-amount">' + formatMoney(currFixed[item]) + '</div></div>' +
-        '</div>';
-      }).join('');
+  var fixHtml = orderedItems.map(function(item) {
+    var paid      = currFixed[item] > 0;
+    var isTax     = item === '세금';
+    var refFixed  = isTax ? lyFixed : prevFixed;
+    var refLabel  = isTax ? '작년 ' + month + '월' : '지난달';
+    var refAmount = refFixed[item] || 0;
+    var hasRef    = refAmount > 0;
+    var amtHtml, cmpHtml;
+    if (paid) {
+      var diff = currFixed[item] - refAmount;
+      amtHtml = '<div class="dash-amount">' + formatMoney(currFixed[item]) + '</div>';
+      cmpHtml = !hasRef
+        ? '<div class="dash-compare flat">' + refLabel + ' 데이터 없음</div>'
+        : diff < 0
+          ? '<div class="dash-compare save">↘ ' + refLabel + '보다 ' + formatNum(Math.abs(diff)) + '원 줄었어요</div>'
+          : diff > 0
+            ? '<div class="dash-compare over">↗ ' + refLabel + '보다 ' + formatNum(diff) + '원 올랐어요</div>'
+            : '<div class="dash-compare flat">' + refLabel + '과 같아요</div>';
+    } else {
+      amtHtml = '<div class="dash-amount" style="color:var(--text-muted);font-size:var(--text-caption)">결제 전</div>';
+      cmpHtml = hasRef
+        ? '<div class="dash-compare flat">예상: ' + formatMoney(refAmount) + ' (' + refLabel + ' 기준)</div>'
+        : '<div class="dash-compare flat">기준 데이터 없음</div>';
+    }
+    return '<div class="dash-row">' +
+      '<div class="dash-row-left">' +
+        '<span class="dash-row-icon">🏢</span>' +
+        '<div><div class="dash-row-name">' + escHtml(item) + '</div>' + cmpHtml + '</div>' +
+      '</div>' +
+      '<div class="dash-row-right">' + amtHtml + '</div>' +
+    '</div>';
+  }).join('');
+
+  if (orderedItems.length === 0) {
+    fixHtml = '<div class="dash-compare flat" style="padding:4px 0 12px">고정비 항목이 없어요.</div>';
+  }
 
   document.getElementById('dash-fixed').innerHTML =
     '<div class="dash-title">이번 달 주요 고정비</div>' + fixHtml;
