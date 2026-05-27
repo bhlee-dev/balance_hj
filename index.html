@@ -202,7 +202,7 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .form-row-label{font-size:var(--text-caption);font-weight:var(--fw-medium);color:var(--text-sub);flex-shrink:0;white-space:nowrap;min-width:44px}
 .form-row-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 16px}
 .seg-ctrl{display:flex;background:rgba(255,255,255,0.10);border-radius:10px;padding:2px;gap:2px}
-.form-row .seg-ctrl{flex:1;min-width:0}
+.form-row .seg-ctrl{flex:1;min-width:0;align-self:center;height:36px}
 .seg-btn{flex:1;height:32px;padding:0 14px;border:none;border-radius:8px;background:transparent;color:#8E8E93;font-size:var(--text-caption);font-weight:var(--fw-medium);cursor:pointer;font-family:inherit;transition:all 0.2s ease-in-out;white-space:nowrap;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
 .seg-btn.active{background:#FFFFFF;color:#121212}
 .seg-btn.error{outline:1.5px solid var(--danger)}
@@ -1071,8 +1071,8 @@ function effectiveCategory() {
 }
 
 function updateUserSeg() {
-  if (state.selectedUser === '희정') return; // 고정비 병합 상태는 updateUserSegForMajor가 처리
-  document.querySelectorAll('#seg-user .seg-btn').forEach(function(btn) {
+  if (state.selectedUser === '희정') return;
+  document.querySelectorAll('#seg-user .seg-btn:not(#seg-user-common)').forEach(function(btn) {
     btn.className = 'seg-btn' + (btn.dataset.user === state.selectedUser ? ' active' : '');
   });
 }
@@ -1088,14 +1088,23 @@ function updateUserSegForMajor(major) {
   var indivBtns = Array.from(document.querySelectorAll('#seg-user .seg-btn:not(#seg-user-common)'));
   if (major === '고정비') {
     indivBtns.forEach(function(b) { b.style.display = 'none'; });
-    if (commonBtn) commonBtn.style.display = '';
+    if (commonBtn) {
+      commonBtn.style.display = '';
+      commonBtn.className = 'seg-btn active'; // 항상 명시적으로 active 보장
+    }
     state.selectedUser = '희정';
     var errEl = document.getElementById('user-error');
     if (errEl) errEl.style.display = 'none';
   } else {
     indivBtns.forEach(function(b) { b.style.display = ''; });
-    if (commonBtn) commonBtn.style.display = 'none';
-    if (state.selectedUser === '희정') state.selectedUser = '희'; // 개인 선택으로 복구
+    if (commonBtn) {
+      commonBtn.style.display = 'none';
+      commonBtn.className = 'seg-btn active'; // 다음 고정비 전환을 위해 클래스 복원
+    }
+    if (state.selectedUser === '희정') {
+      var last = localStorage.getItem('lastUser');
+      state.selectedUser = (last === '희' || last === '정') ? last : '희';
+    }
     updateUserSeg();
   }
 }
