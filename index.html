@@ -289,6 +289,21 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .home-sub-labels{display:flex;gap:22px;margin-top:16px}
 .home-sub-label{font-size:var(--text-micro);font-weight:var(--fw-regular);color:var(--text-muted);letter-spacing:var(--ls-normal)}
 
+/* ══════════════════════════════════ HOME DASHBOARD ═══ */
+.dash-card{background:var(--surface-1);border-radius:16px;padding:20px 20px 8px;border:1px solid var(--border)}
+.dash-title{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);margin-bottom:12px}
+.dash-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+.dash-row:last-child{border-bottom:none;padding-bottom:12px}
+.dash-row-left{display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0}
+.dash-row-icon{font-size:16px;margin-top:2px;flex-shrink:0}
+.dash-row-name{font-size:var(--text-body);font-weight:var(--fw-medium);color:var(--text)}
+.dash-compare{font-size:var(--text-micro);font-weight:var(--fw-regular);margin-top:3px}
+.dash-compare.save{color:var(--text)}
+.dash-compare.over{color:var(--text-caption)}
+.dash-compare.flat{color:var(--text-muted)}
+.dash-row-right{text-align:right;flex-shrink:0;padding-left:12px}
+.dash-amount{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
+
 /* ═══════════════════════════════════ MISC ELEMENTS ═══ */
 .more-btn{width:34px;height:34px;border:none;background:none;color:var(--text-muted);font-size:var(--text-h2);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;-webkit-tap-highlight-color:transparent;flex-shrink:0;transition:background .2s ease-in-out}
 .more-btn:active{background:var(--surface-2)}
@@ -343,9 +358,9 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         </div>
       </div>
 
-      <div class="section-header">최근 지출</div>
-      <div class="card" style="padding:0 16px">
-        <div id="home-recent-list"></div>
+      <div style="padding:4px 16px 24px;display:flex;flex-direction:column;gap:12px">
+        <div class="dash-card" id="dash-living"></div>
+        <div class="dash-card" id="dash-fixed"></div>
       </div>
     </div>
 
@@ -843,59 +858,55 @@ async function loadHomeData() {
   state.currentYear = year; state.currentMonth = month;
   document.getElementById('header-month').textContent = year + '년 ' + month + '월';
 
-  var summaryKey = 'summary_' + year + '_' + month;
-  var recentKey = 'recent';
-  var cachedSummary = getCached(summaryKey);
-  var cachedRecent = getCached(recentKey);
+  var prevMonth = month === 1 ? 12 : month - 1;
+  var prevYear  = month === 1 ? year - 1 : year;
+  var lastYear  = year - 1;
 
-  if (!cachedSummary) renderHomeSkeleton();
+  var summaryKey = 'summary_'  + year     + '_' + month;
+  var currKey    = 'expenses_' + year     + '_' + month;
+  var prevKey    = 'expenses_' + prevYear + '_' + prevMonth;
+  var lyKey      = 'expenses_' + lastYear + '_' + month;
+
+  if (!getCached(summaryKey)) renderHomeSkeleton();
 
   try {
     var results = await Promise.allSettled([
-      cachedSummary ? Promise.resolve(cachedSummary) : callAPI('getMonthlySummary', {year: year, month: month}),
-      cachedRecent ? Promise.resolve({ success: true, data: cachedRecent }) : callAPI('getRecentExpenses', {limit: 10})
+      getCached(summaryKey) ? Promise.resolve(getCached(summaryKey)) : callAPI('getMonthlySummary', {year: year, month: month}),
+      getCached(currKey) ? Promise.resolve({success:true, data:getCached(currKey)}) : callAPI('getExpenses', {year: year, month: month}),
+      getCached(prevKey) ? Promise.resolve({success:true, data:getCached(prevKey)}) : callAPI('getExpenses', {year: prevYear, month: prevMonth}),
+      getCached(lyKey)   ? Promise.resolve({success:true, data:getCached(lyKey)})   : callAPI('getExpenses', {year: lastYear, month: month})
     ]);
 
     var summary = results[0].status === 'fulfilled' ? results[0].value : null;
-    var recentRes = results[1].status === 'fulfilled' ? results[1].value : null;
+    var currRes = results[1].status === 'fulfilled' ? results[1].value : null;
+    var prevRes = results[2].status === 'fulfilled' ? results[2].value : null;
+    var lyRes   = results[3].status === 'fulfilled' ? results[3].value : null;
 
-    if ((summary && summary.error === '인증 실패') || (recentRes && recentRes.error === '인증 실패')) {
-      handleAuthFailure();
-      return;
-    }
+    if (summary && summary.error === '인증 실패') { handleAuthFailure(); return; }
 
-    var summaryErr = results[0].status === 'rejected'
-      ? results[0].reason && results[0].reason.message
-      : (summary && !summary.success ? summary.error : null);
-    var recentErr = results[1].status === 'rejected'
-      ? results[1].reason && results[1].reason.message
-      : (recentRes && !recentRes.success ? recentRes.error : null);
+    if (summary && summary.success) { setCached(summaryKey, summary); renderHomeSummary(summary); }
+    else document.getElementById('home-total').textContent = '-';
 
-    if (summary && summary.success) {
-      setCached(summaryKey, summary);
-      renderHomeSummary(summary);
-    } else {
-      document.getElementById('home-total').textContent = '-';
-    }
+    var currData = (currRes && currRes.success) ? currRes.data : [];
+    var prevData = (prevRes && prevRes.success) ? prevRes.data : [];
+    var lyData   = (lyRes   && lyRes.success)   ? lyRes.data   : [];
+    if (currRes && currRes.success) setCached(currKey, currData);
+    if (prevRes && prevRes.success) setCached(prevKey, prevData);
+    if (lyRes   && lyRes.success)   setCached(lyKey,   lyData);
 
-    if (recentRes && recentRes.success) {
-      setCached(recentKey, recentRes.data);
-      renderHomeRecent(recentRes.data);
-    } else {
-      _retryFns['home'] = loadHomeData;
-      renderLoadError('home-recent-list', null, 'home', recentErr || summaryErr);
-    }
+    renderHomeDashboard(currData, prevData, lyData, month);
+
   } catch(e) {
     console.error('홈 데이터 로드 실패', e);
     _retryFns['home'] = loadHomeData;
-    renderLoadError('home-recent-list', 'home-total', 'home', e.message);
+    renderLoadError('dash-living', 'home-total', 'home', e.message);
   }
 }
 
 function renderHomeSkeleton() {
   document.getElementById('home-total').innerHTML = '<div class="skeleton" style="width:140px;height:32px;border-radius:6px"></div>';
-  document.getElementById('home-recent-list').innerHTML =
-    [0,1,2].map(function(){ return '<div class="skeleton" style="height:64px;margin:8px 0;border-radius:8px"></div>'; }).join('');
+  document.getElementById('dash-living').innerHTML = [0,1,2].map(function(){ return '<div class="skeleton" style="height:44px;margin:6px 0;border-radius:6px"></div>'; }).join('');
+  document.getElementById('dash-fixed').innerHTML  = [0,1].map(function(){ return '<div class="skeleton" style="height:44px;margin:6px 0;border-radius:6px"></div>'; }).join('');
 }
 
 function renderHomeSummary(s) {
@@ -906,31 +917,78 @@ function renderHomeSummary(s) {
   document.getElementById('home-fixed-label').textContent = '고정비 ' + formatMoney(s.fixedTotal);
 }
 
-function renderHomeRecent(data) {
-  var el = document.getElementById('home-recent-list');
-  if (!data || data.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="padding:24px 0"><div class="empty-icon">🗒️</div><div class="empty-text">이번 달 지출 내역이 없어요</div></div>';
-    return;
-  }
-  el.innerHTML = data.map(function(item, i) {
-    var pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : 'pill-wife';
-    return '<div class="expense-item slide-in" style="animation-delay:' + (i*20) + 'ms">' +
-      '<div class="ei-left">' +
-        '<div class="ei-top">' +
-          '<div class="expense-icon">' + (CATEGORY_EMOJI[item.category] || '📦') + '</div>' +
-          '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-        '</div>' +
-        '<div class="expense-date">' +
-          '<span style="flex-shrink:0">' + escHtml(item.date) + (item.memo ? ' · ' : '') + '</span>' +
-          (item.memo ? '<span class="expense-memo">' + escHtml(item.memo) + '</span>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="ei-right">' +
-        '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
-        '<span class="user-pill ' + pillCls + '">' + escHtml(item.user) + '</span>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+function renderHomeDashboard(curr, prev, ly, month) {
+  var livCats = ['식비','교통','생활','의료','여가'];
+
+  // ── 생활비 하이라이트 ─────────────────────────────────
+  var currLiv = {}, prevLiv = {};
+  livCats.forEach(function(c){ currLiv[c] = 0; prevLiv[c] = 0; });
+  (curr || []).forEach(function(e){ if (livCats.includes(e.category)) currLiv[e.category] += e.amount; });
+  (prev || []).forEach(function(e){ if (livCats.includes(e.category)) prevLiv[e.category] += e.amount; });
+
+  var topLiv = livCats
+    .filter(function(c){ return currLiv[c] > 0; })
+    .sort(function(a,b){ return currLiv[b] - currLiv[a]; })
+    .slice(0, 3);
+
+  var livHtml = topLiv.length === 0
+    ? '<div class="dash-compare flat" style="padding:4px 0 12px">이번 달 생활비 내역이 없어요.</div>'
+    : topLiv.map(function(cat) {
+        var diff = currLiv[cat] - prevLiv[cat];
+        var hasPrev = prevLiv[cat] > 0;
+        var cmp = !hasPrev
+          ? '<div class="dash-compare flat">지난달 데이터 없음</div>'
+          : diff < 0
+            ? '<div class="dash-compare save">↘ 지난달보다 ' + formatNum(Math.abs(diff)) + '원 덜 썼어요</div>'
+            : diff > 0
+              ? '<div class="dash-compare over">↗ 지난달보다 ' + formatNum(diff) + '원 더 썼어요</div>'
+              : '<div class="dash-compare flat">지난달과 동일해요</div>';
+        return '<div class="dash-row">' +
+          '<div class="dash-row-left">' +
+            '<span class="dash-row-icon">' + (CATEGORY_EMOJI[cat] || '📦') + '</span>' +
+            '<div><div class="dash-row-name">' + cat + '</div>' + cmp + '</div>' +
+          '</div>' +
+          '<div class="dash-row-right"><div class="dash-amount">' + formatMoney(currLiv[cat]) + '</div></div>' +
+        '</div>';
+      }).join('');
+
+  document.getElementById('dash-living').innerHTML =
+    '<div class="dash-title">생활비 하이라이트</div>' + livHtml;
+
+  // ── 주요 고정비 체크 ──────────────────────────────────
+  var currFixed = {}, lyFixed = {};
+  (curr || []).filter(function(e){ return e.category === '고정비'; })
+    .forEach(function(e){ currFixed[e.item] = (currFixed[e.item] || 0) + e.amount; });
+  (ly || []).filter(function(e){ return e.category === '고정비'; })
+    .forEach(function(e){ lyFixed[e.item] = (lyFixed[e.item] || 0) + e.amount; });
+
+  var topFixed = Object.keys(currFixed)
+    .sort(function(a,b){ return currFixed[b] - currFixed[a]; })
+    .slice(0, 3);
+
+  var fixHtml = topFixed.length === 0
+    ? '<div class="dash-compare flat" style="padding:4px 0 12px">이번 달 고정비 내역이 없어요.</div>'
+    : topFixed.map(function(item) {
+        var hasLY = item in lyFixed;
+        var diff = hasLY ? currFixed[item] - lyFixed[item] : null;
+        var cmp = !hasLY
+          ? '<div class="dash-compare flat">작년 데이터 없음</div>'
+          : diff < 0
+            ? '<div class="dash-compare save">↘ 작년 ' + month + '월보다 ' + formatNum(Math.abs(diff)) + '원 줄었어요</div>'
+            : diff > 0
+              ? '<div class="dash-compare over">↗ 작년 ' + month + '월보다 ' + formatNum(diff) + '원 올랐어요</div>'
+              : '<div class="dash-compare flat">작년 ' + month + '월과 동일해요</div>';
+        return '<div class="dash-row">' +
+          '<div class="dash-row-left">' +
+            '<span class="dash-row-icon">🏢</span>' +
+            '<div><div class="dash-row-name">' + escHtml(item) + '</div>' + cmp + '</div>' +
+          '</div>' +
+          '<div class="dash-row-right"><div class="dash-amount">' + formatMoney(currFixed[item]) + '</div></div>' +
+        '</div>';
+      }).join('');
+
+  document.getElementById('dash-fixed').innerHTML =
+    '<div class="dash-title">이번 달 주요 고정비</div>' + fixHtml;
 }
 
 // ====================================================
