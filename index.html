@@ -125,7 +125,8 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .expense-icon{width:44px;height:44px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .expense-info{flex:1;min-width:0}
 .expense-name{font-size:var(--text-body);font-weight:var(--fw-medium);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.expense-date{font-size:var(--text-caption);color:var(--text-muted);margin-top:3px}
+.expense-date{font-size:var(--text-caption);color:var(--text-muted);margin-top:3px;display:flex;align-items:baseline;overflow:hidden}
+.expense-memo{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8E8E93;font-size:var(--text-micro)}
 .expense-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center}
 .expense-amount{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
 .expense-user{margin-top:5px}
@@ -914,7 +915,7 @@ function renderHomeRecent(data) {
       '<div class="expense-icon">' + (CATEGORY_EMOJI[item.category] || '📦') + '</div>' +
       '<div class="expense-info">' +
         '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-        '<div class="expense-date">' + escHtml(item.date) + '</div>' +
+        '<div class="expense-date"><span style="flex-shrink:0">' + escHtml(item.date) + (item.memo ? ' · ' : '') + '</span>' + (item.memo ? '<span class="expense-memo">' + escHtml(item.memo) + '</span>' : '') + '</div>' +
       '</div>' +
       '<div class="expense-right">' +
         '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
@@ -1432,7 +1433,7 @@ function renderMonthlyExpenses(data) {
         '<div class="expense-icon" style="width:36px;height:36px;font-size:16px">' + (CATEGORY_EMOJI[item.category]||'📦') + '</div>' +
         '<div class="expense-info">' +
           '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-          '<span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span>' +
+          '<div style="display:flex;align-items:center;overflow:hidden"><span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '" style="flex-shrink:0">' + escHtml(item.user) + '</span>' + (item.memo ? '<span class="expense-memo" style="margin-left:6px">' + escHtml(item.memo) + '</span>' : '') + '</div>' +
         '</div>' +
         '<div class="expense-right">' +
           '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
