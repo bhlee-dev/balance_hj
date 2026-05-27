@@ -255,19 +255,17 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #annual-chart-wrap{padding:0 16px 12px;overflow-x:auto;position:relative}
 #annual-svg{width:100%;height:auto;display:block}
 /* ═══════════════════════════════════ ANNUAL MATRIX ═══ */
-.annual-matrix-wrap{margin:0 0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.annual-matrix-wrap::-webkit-scrollbar{height:2px}
-.annual-matrix-wrap::-webkit-scrollbar-track{background:transparent}
-.annual-matrix-wrap::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:2px}
-.annual-matrix{width:max-content;min-width:100%;border-collapse:collapse;white-space:nowrap}
-.annual-matrix th{padding:9px 16px;background:transparent;color:#8E8E93;font-size:var(--text-caption);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
-.annual-matrix th:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:2}
-.annual-matrix td{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-sub);font-size:var(--text-body);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
-.annual-matrix td:first-child{text-align:left;color:var(--text-muted);position:sticky;left:0;background:var(--bg);z-index:1}
+.annual-matrix-wrap{margin:0 0 24px}
+.annual-matrix{width:100%;table-layout:fixed;border-collapse:collapse}
+.annual-matrix th{padding:9px 8px;background:transparent;color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
+.annual-matrix th:first-child{text-align:left;padding-left:16px}
+.annual-matrix th:last-child{padding-right:16px}
+.annual-matrix td{padding:12px 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-sub);font-size:var(--text-micro);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
+.annual-matrix td:first-child{text-align:left;color:var(--text-muted);padding-left:16px}
+.annual-matrix td:last-child{padding-right:16px}
 .annual-matrix td.amount-zero{color:rgba(245,245,247,0.16)}
 .annual-matrix td.col-total,.annual-matrix th.col-total{color:var(--text)!important;font-weight:var(--fw-semibold)}
 .annual-matrix tr.matrix-footer td{font-weight:var(--fw-semibold);border-top:1px solid rgba(255,255,255,0.08);border-bottom:none;color:#FFFFFF}
-.annual-matrix tr.matrix-footer td:first-child{background:var(--bg)}
 
 /* ══════════════════════════════════ EMPTY STATE ═══ */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;text-align:center}
@@ -505,19 +503,15 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       </div>
 
       <div class="section-header" style="display:flex;align-items:baseline;gap:8px">월별 요약<span style="font-size:var(--text-micro);font-weight:var(--fw-regular);color:#8E8E93;letter-spacing:0">(단위: 원)</span></div>
+      <div style="padding:0 16px 12px">
+        <div class="seg-ctrl" id="annual-view-seg">
+          <button class="seg-btn active" data-view="summary" type="button">전체 요약</button>
+          <button class="seg-btn" data-view="detail" type="button">고정비 상세</button>
+        </div>
+      </div>
       <div class="annual-matrix-wrap">
         <table class="annual-matrix" id="annual-matrix">
-          <thead>
-            <tr>
-              <th>월</th>
-              <th>생활비</th>
-              <th>관리비</th>
-              <th>도시가스</th>
-              <th>수도요금</th>
-              <th>세금</th>
-              <th class="col-total">합계</th>
-            </tr>
-          </thead>
+          <thead><tr id="annual-matrix-head"></tr></thead>
           <tbody id="annual-matrix-body"></tbody>
         </table>
       </div>
@@ -611,7 +605,8 @@ const state = {
   cache: {},
   isLoading: false,
   availableYears: [],
-  pendingAction: null // 액션 시트용
+  pendingAction: null, // 액션 시트용
+  annualView: 'summary'
 };
 
 // ====================================================
@@ -1578,42 +1573,70 @@ function showAnnualTooltip(e, bar) {
 }
 
 function renderAnnualMatrix(months, fixedMonths) {
+  var head = document.getElementById('annual-matrix-head');
   var tbody = document.getElementById('annual-matrix-body');
-  if (!tbody) return;
+  if (!head || !tbody || !months) return;
+
+  state._annualMonths = months;
+  state._annualFixedMonths = fixedMonths;
+
+  document.querySelectorAll('#annual-view-seg .seg-btn').forEach(function(b) {
+    b.className = 'seg-btn' + (b.dataset.view === state.annualView ? ' active' : '');
+  });
 
   var fixedMap = {};
   (fixedMonths || []).forEach(function(m) { fixedMap[m.month] = m; });
 
-  var totLiving = 0, totAll = 0;
-  var totFixed = { '관리비': 0, '도시가스': 0, '수도요금': 0, '세금': 0 };
+  var zeroTd = function(v, extraCls) {
+    var cls = [extraCls, v > 0 ? '' : 'amount-zero'].filter(Boolean).join(' ');
+    return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (v > 0 ? formatNum(v) : '–') + '</td>';
+  };
 
-  var html = months.map(function(m) {
-    totLiving += m.living;
-    totAll += m.total;
-    var fd = fixedMap[m.month] || {};
-    FIXED_BREAKDOWN_ITEMS.forEach(function(n) { totFixed[n] += (fd[n] || 0); });
+  var html, footHtml;
 
-    var zeroTd = function(v) {
-      return '<td class="' + (v > 0 ? '' : 'amount-zero') + '">' + (v > 0 ? formatNum(v) : '–') + '</td>';
-    };
-    return '<tr>' +
-      '<td>' + m.month + '월</td>' +
-      zeroTd(m.living) +
-      FIXED_BREAKDOWN_ITEMS.map(function(n) { return zeroTd(fd[n] || 0); }).join('') +
-      '<td class="col-total">' + (m.total > 0 ? formatNum(m.total) : '–') + '</td>' +
+  if (state.annualView === 'detail') {
+    head.innerHTML = '<th>월</th>' + FIXED_BREAKDOWN_ITEMS.map(function(n) { return '<th>' + n + '</th>'; }).join('');
+
+    var totFixed = {};
+    FIXED_BREAKDOWN_ITEMS.forEach(function(n) { totFixed[n] = 0; });
+
+    html = months.map(function(m) {
+      var fd = fixedMap[m.month] || {};
+      FIXED_BREAKDOWN_ITEMS.forEach(function(n) { totFixed[n] += (fd[n] || 0); });
+      return '<tr><td>' + m.month + '월</td>' +
+        FIXED_BREAKDOWN_ITEMS.map(function(n) { return zeroTd(fd[n] || 0); }).join('') +
+      '</tr>';
+    }).join('');
+
+    footHtml = '<tr class="matrix-footer"><td>합계</td>' +
+      FIXED_BREAKDOWN_ITEMS.map(function(n) {
+        return '<td>' + (totFixed[n] > 0 ? formatNum(totFixed[n]) : '–') + '</td>';
+      }).join('') +
     '</tr>';
-  }).join('');
 
-  html += '<tr class="matrix-footer">' +
-    '<td>합계</td>' +
-    '<td>' + formatNum(totLiving) + '</td>' +
-    FIXED_BREAKDOWN_ITEMS.map(function(n) {
-      return '<td>' + (totFixed[n] > 0 ? formatNum(totFixed[n]) : '–') + '</td>';
-    }).join('') +
-    '<td class="col-total">' + formatNum(totAll) + '</td>' +
-  '</tr>';
+  } else {
+    head.innerHTML = '<th>월</th><th>생활비</th><th>고정비</th><th class="col-total">합계</th>';
 
-  tbody.innerHTML = html;
+    var totL = 0, totF = 0, totA = 0;
+
+    html = months.map(function(m) {
+      var living = m.total - m.fixed; // 기타 포함 변동비 전체
+      totL += living; totF += m.fixed; totA += m.total;
+      return '<tr><td>' + m.month + '월</td>' +
+        zeroTd(living) +
+        zeroTd(m.fixed) +
+        zeroTd(m.total, 'col-total') +
+      '</tr>';
+    }).join('');
+
+    footHtml = '<tr class="matrix-footer"><td>합계</td>' +
+      '<td>' + (totL > 0 ? formatNum(totL) : '–') + '</td>' +
+      '<td>' + (totF > 0 ? formatNum(totF) : '–') + '</td>' +
+      '<td class="col-total">' + formatNum(totA) + '</td>' +
+    '</tr>';
+  }
+
+  tbody.innerHTML = html + footHtml;
 }
 
 // ====================================================
@@ -1738,6 +1761,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (state.monthlyMonth === 12) { state.monthlyYear++; state.monthlyMonth = 1; }
     else state.monthlyMonth++;
     loadMonthlyData();
+  });
+
+  // 연간 뷰 토글
+  document.getElementById('annual-view-seg').addEventListener('click', function(e) {
+    var btn = e.target.closest('.seg-btn');
+    if (!btn || btn.dataset.view === state.annualView) return;
+    state.annualView = btn.dataset.view;
+    renderAnnualMatrix(state._annualMonths, state._annualFixedMonths);
   });
 
   // 연간 네비
