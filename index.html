@@ -120,16 +120,18 @@ body{display:flex;flex-direction:column;align-items:stretch}
 .pill-wife{background:var(--wife-bg);color:var(--wife)}
 
 /* ══════════════════════════════════════ HOME EXPENSE LIST ═══ */
-.expense-item{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--border)}
+.expense-item{display:flex;justify-content:space-between;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--border)}
 .expense-item:last-child{border-bottom:none}
 .expense-icon{width:44px;height:44px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.expense-info{flex:1;min-width:0}
-.expense-name{font-size:var(--text-body);font-weight:var(--fw-medium);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.expense-date{font-size:var(--text-caption);color:var(--text-muted);margin-top:3px;display:flex;align-items:baseline;overflow:hidden}
+.expense-name{font-size:var(--text-body);font-weight:var(--fw-medium);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.expense-date{font-size:var(--text-caption);color:var(--text-muted);display:flex;align-items:baseline;overflow:hidden}
 .expense-memo{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8E8E93;font-size:var(--text-micro)}
-.expense-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center}
 .expense-amount{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
-.expense-user{margin-top:5px}
+/* ══════════════════════════════════ SHARED INNER LAYOUT ═══ */
+.ei-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ei-top{display:flex;align-items:center;gap:10px;min-width:0}
+.ei-right{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px;padding-left:12px}
+.ei-amount-row{display:flex;align-items:center;gap:4px}
 
 /* ══════════════════════════════════════ SECTION HEADER ═══ */
 .section-header{font-size:var(--text-h2);font-weight:var(--fw-semibold);color:var(--text);padding:26px 22px 12px;letter-spacing:var(--ls-normal)}
@@ -228,7 +230,7 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .date-group{margin-bottom:2px}
 .date-group-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 6px;font-size:var(--text-micro);font-weight:var(--fw-semibold);color:var(--text-sub);letter-spacing:var(--ls-wide);text-transform:uppercase}
 .date-group-total{font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
-.expense-list-item{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--border);transition:background .2s ease-in-out}
+.expense-list-item{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px;border-bottom:1px solid var(--border);transition:background .2s ease-in-out}
 .expense-list-item:active{background:var(--surface-2)}
 .expense-list-item:last-child{border-bottom:none}
 
@@ -911,15 +913,21 @@ function renderHomeRecent(data) {
     return;
   }
   el.innerHTML = data.map(function(item, i) {
+    var pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : 'pill-wife';
     return '<div class="expense-item slide-in" style="animation-delay:' + (i*20) + 'ms">' +
-      '<div class="expense-icon">' + (CATEGORY_EMOJI[item.category] || '📦') + '</div>' +
-      '<div class="expense-info">' +
-        '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-        '<div class="expense-date"><span style="flex-shrink:0">' + escHtml(item.date) + (item.memo ? ' · ' : '') + '</span>' + (item.memo ? '<span class="expense-memo">' + escHtml(item.memo) + '</span>' : '') + '</div>' +
+      '<div class="ei-left">' +
+        '<div class="ei-top">' +
+          '<div class="expense-icon">' + (CATEGORY_EMOJI[item.category] || '📦') + '</div>' +
+          '<div class="expense-name">' + escHtml(item.item) + '</div>' +
+        '</div>' +
+        '<div class="expense-date">' +
+          '<span style="flex-shrink:0">' + escHtml(item.date) + (item.memo ? ' · ' : '') + '</span>' +
+          (item.memo ? '<span class="expense-memo">' + escHtml(item.memo) + '</span>' : '') +
+        '</div>' +
       '</div>' +
-      '<div class="expense-right">' +
+      '<div class="ei-right">' +
         '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
-        '<div class="expense-user"><span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '">' + escHtml(item.user) + '</span></div>' +
+        '<span class="user-pill ' + pillCls + '">' + escHtml(item.user) + '</span>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -1429,16 +1437,22 @@ function renderMonthlyExpenses(data) {
   var html = dates.map(function(date, di) {
     var dayTotal = groups[date].reduce(function(s,i){ return s+i.amount; }, 0);
     var items = groups[date].map(function(item, ii) {
+      var pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : 'pill-wife';
       return '<div class="expense-list-item slide-in" style="animation-delay:' + ((di*2+ii)*20) + 'ms">' +
-        '<div class="expense-icon" style="width:36px;height:36px;font-size:16px">' + (CATEGORY_EMOJI[item.category]||'📦') + '</div>' +
-        '<div class="expense-info">' +
-          '<div class="expense-name">' + escHtml(item.item) + '</div>' +
-          '<div style="display:flex;align-items:center;overflow:hidden"><span class="user-pill ' + ((item.user==='남편'||item.user==='희')?'pill-husband':'pill-wife') + '" style="flex-shrink:0">' + escHtml(item.user) + '</span>' + (item.memo ? '<span class="expense-memo" style="margin-left:6px">' + escHtml(item.memo) + '</span>' : '') + '</div>' +
+        '<div class="ei-left">' +
+          '<div class="ei-top">' +
+            '<div class="expense-icon" style="width:36px;height:36px;font-size:16px">' + (CATEGORY_EMOJI[item.category]||'📦') + '</div>' +
+            '<div class="expense-name">' + escHtml(item.item) + '</div>' +
+          '</div>' +
+          (item.memo ? '<div class="expense-date"><span class="expense-memo">' + escHtml(item.memo) + '</span></div>' : '') +
         '</div>' +
-        '<div class="expense-right">' +
-          '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
+        '<div class="ei-right">' +
+          '<div class="ei-amount-row">' +
+            '<div class="expense-amount">' + formatMoney(item.amount) + '</div>' +
+            '<button class="more-btn" data-row="' + item.rowIndex + '" data-name="' + escHtml(item.item) + '" onclick="openActionSheet(this)" type="button">···</button>' +
+          '</div>' +
+          '<span class="user-pill ' + pillCls + '">' + escHtml(item.user) + '</span>' +
         '</div>' +
-        '<button class="more-btn" data-row="' + item.rowIndex + '" data-name="' + escHtml(item.item) + '" onclick="openActionSheet(this)" type="button">···</button>' +
       '</div>';
     }).join('');
     return '<div class="date-group">' +
