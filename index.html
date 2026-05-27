@@ -219,6 +219,8 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .fixed-breakdown-name{font-size:var(--text-caption);color:var(--text-sub);letter-spacing:var(--ls-normal)}
 .fixed-breakdown-amount{font-size:var(--text-caption);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text)}
 .fixed-breakdown-amount.unpaid{color:var(--text-muted);font-weight:var(--fw-regular)}
+.fixed-breakdown-item.clickable{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.15s}
+.fixed-breakdown-item.clickable:active{background:rgba(255,255,255,0.06)}
 
 /* ════════════════════════════════ DATE-GROUP LIST ═══ */
 .date-group{margin-bottom:2px}
@@ -1198,6 +1200,7 @@ function resetForm() {
   updateItemSuggestions();
   document.getElementById('edit-banner').classList.remove('show');
   document.getElementById('save-btn').textContent = '저장하기';
+  document.getElementById('header-title').textContent = '기록';
 }
 
 function fillFormWithExpense(data) {
@@ -1234,7 +1237,8 @@ function fillFormWithExpense(data) {
   updateDatePills();
   updateItemSuggestions();
   document.getElementById('edit-banner').classList.add('show');
-  document.getElementById('save-btn').textContent = '수정 완료';
+  document.getElementById('save-btn').textContent = '수정하기';
+  document.getElementById('header-title').textContent = '내역 수정';
 }
 
 function openEditMode(expenseData, returnTab) {
@@ -1353,14 +1357,30 @@ function renderMonthlyFixedBreakdown(expenses) {
       .filter(function(e) { return e.item && e.item.includes(name); })
       .reduce(function(s, e) { return s + e.amount; }, 0);
     var paid = total > 0;
-    return '<div class="fixed-breakdown-item">' +
+    var rowClass = paid ? 'fixed-breakdown-item' : 'fixed-breakdown-item clickable';
+    var rowClick = paid ? '' : ' onclick="quickRecordFixed(\'' + name + '\')"';
+    return '<div class="' + rowClass + '"' + rowClick + '>' +
       '<span class="fixed-breakdown-name">' + escHtml(name) + '</span>' +
       '<span class="fixed-breakdown-amount' + (paid ? '' : ' unpaid') + '">' +
-        (paid ? formatMoney(total) : '미결제') +
+        (paid ? formatMoney(total) : '미결제 ›') +
       '</span>' +
     '</div>';
   }).join('');
   el.innerHTML = html;
+}
+
+function quickRecordFixed(itemName) {
+  state.editingRowIndex = null;
+  showTab('record');              // initRecordTab → resetForm 순서로 실행된 뒤
+  state.selectedMajorCat = '고정비';
+  state.categoryManuallySet = true;
+  updateCategoryForm();           // 고정비 드롭다운 노출
+  var sel = document.getElementById('expense-item-select');
+  if (sel) sel.value = itemName;
+  setTimeout(function() {
+    var amt = document.getElementById('expense-amount');
+    if (amt) { amt.focus(); amt.select(); }
+  }, 150);
 }
 
 function renderMonthlyExpenses(data) {
