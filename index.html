@@ -1751,6 +1751,13 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUserSeg();
     document.getElementById('expense-date').value = todayStr();
     updateDatePills();
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        if (state.currentTab === 'home') loadHomeData();
+        else if (state.currentTab === 'monthly') loadMonthlyData();
+        else if (state.currentTab === 'annual') loadAnnualData();
+      }
+    });
   }
 
   async function submitPin() {
