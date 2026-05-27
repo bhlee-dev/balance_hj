@@ -509,7 +509,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
       <div class="section-header">월별 지출 추이</div>
       <div id="annual-chart-wrap" style="position:relative">
-        <svg id="annual-svg" viewBox="0 0 360 130" preserveAspectRatio="xMidYMid meet"></svg>
+        <svg id="annual-svg" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet"></svg>
         <div id="svg-tooltip" class="svg-tooltip" style="display:none"></div>
       </div>
 
@@ -1535,28 +1535,72 @@ function renderAnnualSummary(s, fixedBreakdown) {
   renderAnnualMatrix(s.months, fixedBreakdown ? fixedBreakdown.months : null);
 }
 
+function roundedTop(x, y, w, h, r) {
+  if (h <= 0) return '';
+  r = Math.min(r, w / 2, h);
+  var x2 = x + w, yr = y + r, yh = y + h;
+  return 'M' + x.toFixed(1) + ',' + yh.toFixed(1) +
+    ' L' + x.toFixed(1) + ',' + yr.toFixed(1) +
+    ' Q' + x.toFixed(1) + ',' + y.toFixed(1) + ' ' + (x + r).toFixed(1) + ',' + y.toFixed(1) +
+    ' L' + (x2 - r).toFixed(1) + ',' + y.toFixed(1) +
+    ' Q' + x2.toFixed(1) + ',' + y.toFixed(1) + ' ' + x2.toFixed(1) + ',' + yr.toFixed(1) +
+    ' L' + x2.toFixed(1) + ',' + yh.toFixed(1) + ' Z';
+}
+
 function renderAnnualChart(months) {
   var svg = document.getElementById('annual-svg');
-  var W = 360, H = 130, PL = 10, PR = 10, PT = 8, PB = 22;
+  var W = 360, H = 140, PL = 10, PR = 10, PT = 18, PB = 22;
   var chartW = W - PL - PR, chartH = H - PT - PB;
   var maxVal = Math.max.apply(null, months.map(function(m){ return m.total; })) || 1;
   var gap = chartW / 12;
   var barW = Math.floor(gap * 0.46);
-  var MIN_H = 3;
+  var MIN_H = 3, SEP = 1, rx = 3;
 
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+  var legend =
+    '<rect x="222" y="4" width="7" height="7" fill="#F5F5F7" rx="1"/>' +
+    '<text x="231" y="12" font-size="9" fill="var(--text-muted)">생활비</text>' +
+    '<rect x="278" y="4" width="7" height="7" fill="#8E8E93" rx="1"/>' +
+    '<text x="287" y="12" font-size="9" fill="var(--text-muted)">고정비</text>';
 
   var bars = '';
   months.forEach(function(m, i) {
     var x = PL + i * gap + (gap - barW) / 2;
     var baseY = PT + chartH;
-    var barH = m.total > 0 ? Math.max(m.total / maxVal * chartH, MIN_H) : MIN_H;
-    var fill = m.total > 0 ? 'var(--primary)' : 'var(--border)';
-    bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - barH).toFixed(1) + '" width="' + barW + '" height="' + barH.toFixed(1) + '" fill="' + fill + '" rx="3" data-month="' + m.month + '" data-total="' + m.total + '" data-living="' + m.living + '" data-fixed="' + m.fixed + '" class="annual-bar" style="cursor:pointer"/>';
+    var total = m.total || 0;
+    var fixed = m.fixed || 0;
+    var living = (m.living !== undefined) ? m.living : (total - fixed);
+    if (living < 0) living = 0;
+
+    if (total <= 0) {
+      bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - MIN_H).toFixed(1) + '" width="' + barW + '" height="' + MIN_H + '" fill="var(--border)" rx="' + rx + '"/>';
+    } else {
+      var fixedH = fixed > 0 ? Math.max(fixed / maxVal * chartH, MIN_H) : 0;
+      var livingH = living > 0 ? Math.max(living / maxVal * chartH, MIN_H) : 0;
+      var hasBoth = fixedH > 0 && livingH > 0;
+      var fixedY = baseY - fixedH;
+      var livingY = fixedY - (hasBoth ? SEP : 0) - livingH;
+
+      if (fixedH > 0) {
+        if (hasBoth) {
+          bars += '<rect x="' + x.toFixed(1) + '" y="' + fixedY.toFixed(1) + '" width="' + barW + '" height="' + fixedH.toFixed(1) + '" fill="#8E8E93"/>';
+        } else {
+          bars += '<path d="' + roundedTop(x, fixedY, barW, fixedH, rx) + '" fill="#8E8E93"/>';
+        }
+      }
+      if (livingH > 0) {
+        bars += '<path d="' + roundedTop(x, livingY, barW, livingH, rx) + '" fill="#F5F5F7"/>';
+      }
+
+      var topY = livingH > 0 ? livingY : fixedY;
+      bars += '<rect x="' + x.toFixed(1) + '" y="' + topY.toFixed(1) + '" width="' + barW + '" height="' + (baseY - topY).toFixed(1) + '" fill="transparent" data-month="' + m.month + '" data-total="' + total + '" data-living="' + living + '" data-fixed="' + fixed + '" class="annual-bar" style="cursor:pointer"/>';
+    }
+
     bars += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (PT + chartH + 14) + '" text-anchor="middle" font-size="9" fill="var(--text-muted)">' + m.month + '월</text>';
   });
 
-  svg.innerHTML = bars;
+  svg.innerHTML = legend + bars;
 
   svg.querySelectorAll('.annual-bar').forEach(function(bar) {
     bar.addEventListener('click', function(e) { showAnnualTooltip(e, this); });
