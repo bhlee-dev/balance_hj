@@ -461,6 +461,18 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         <div class="summary-card fixed-card"><div class="summary-card-label">고정비</div><div class="summary-card-amount num" id="m-fixed">0원</div></div>
       </div>
 
+      <!-- 부부 지출 인디케이터 -->
+      <div id="monthly-user-split" style="padding:0 16px 14px;display:none">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span id="split-hee-label" style="font-size:var(--text-micro);color:#8E8E93;font-variant-numeric:tabular-nums">희</span>
+          <span id="split-jung-label" style="font-size:var(--text-micro);color:#8E8E93;font-variant-numeric:tabular-nums">정</span>
+        </div>
+        <div style="display:flex;gap:2px;height:7px;border-radius:999px;overflow:hidden">
+          <div id="split-hee-bar" style="background:#F5F5F7;width:50%;transition:width 0.4s ease-in-out;min-width:0"></div>
+          <div id="split-jung-bar" style="flex:1;background:rgba(255,255,255,0.15);min-width:0"></div>
+        </div>
+      </div>
+
       <!-- 고정비 내역 -->
       <div class="section-header">이번 달 고정비 내역</div>
       <div class="fixed-breakdown-list" id="monthly-fixed-breakdown"></div>
@@ -1290,6 +1302,7 @@ async function loadMonthlyData() {
       setCached(expKey, expRes.data);
       renderMonthlyExpenses(expRes.data);
       renderMonthlyFixedBreakdown(expRes.data);
+      renderMonthlyUserSplit(expRes.data);
     } else {
       _retryFns['monthly'] = loadMonthlyData;
       renderLoadError('monthly-expense-list', summary && summary.success ? null : 'm-total', 'monthly', expErr || summaryErr);
@@ -1304,6 +1317,26 @@ async function loadMonthlyData() {
 function renderMonthlySkeleton() {
   document.getElementById('m-total').innerHTML = '<div class="skeleton" style="width:70px;height:18px;border-radius:4px"></div>';
   document.getElementById('monthly-expense-list').innerHTML = '<div class="skeleton" style="height:80px;margin:8px 16px;border-radius:8px"></div>';
+  var splitEl = document.getElementById('monthly-user-split');
+  if (splitEl) splitEl.style.display = 'none';
+}
+
+function renderMonthlyUserSplit(expenses) {
+  var el = document.getElementById('monthly-user-split');
+  if (!el) return;
+  var hee = 0, jung = 0;
+  (expenses || []).forEach(function(e) {
+    if (e.user === '희' || e.user === '남편') hee += e.amount;
+    else if (e.user === '정' || e.user === '아내') jung += e.amount;
+  });
+  var total = hee + jung;
+  if (total === 0) { el.style.display = 'none'; return; }
+  var heePct = Math.round(hee / total * 100);
+  var jungPct = 100 - heePct;
+  document.getElementById('split-hee-label').textContent = '희  ' + formatNum(hee) + ' (' + heePct + '%)';
+  document.getElementById('split-jung-label').textContent = '정  ' + formatNum(jung) + ' (' + jungPct + '%)';
+  document.getElementById('split-hee-bar').style.width = heePct + '%';
+  el.style.display = '';
 }
 
 function renderMonthlySummary(s) {
