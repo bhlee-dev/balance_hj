@@ -1115,11 +1115,13 @@ async function onSaveExpense() {
       });
     } else {
       setBtnError((res && res.error) || '저장 실패. 다시 시도해주세요.');
-      // 오프라인 저장
-      var pending = getPending();
-      pending.push(data);
-      setPending(pending);
-      checkOfflineBar();
+      // 서버가 명시적으로 거부한 경우(res 존재)는 큐잉 안 함 — 재시도해도 동일 실패
+      if (!res) {
+        var pending = getPending();
+        pending.push(data);
+        setPending(pending);
+        checkOfflineBar();
+      }
     }
   } catch(e) {
     setBtnError('저장 실패. 다시 시도해주세요.');
@@ -1134,7 +1136,7 @@ function setBtnLoading(on) {
   state.isLoading = on;
   var btn = document.getElementById('save-btn');
   btn.disabled = on;
-  btn.textContent = on ? '저장 중...' : (state.editingRowIndex ? '수정 완료' : '저장하기');
+  btn.textContent = on ? '저장 중...' : (state.editingRowIndex ? '수정하기' : '저장하기');
 }
 
 function showSaveSuccess(cb) {
@@ -1155,7 +1157,7 @@ function showSaveSuccess(cb) {
   setTimeout(function() {
     state.isLoading = false;
     btn.disabled = false;
-    btn.innerHTML = state.editingRowIndex ? '수정 완료' : '저장하기';
+    btn.innerHTML = state.editingRowIndex ? '수정하기' : '저장하기';
     if (cb) cb();
   }, 1100);
 }
@@ -1168,7 +1170,7 @@ function setBtnError(msg) {
   btn.textContent = msg;
   setTimeout(function() {
     btn.style.background = '';
-    btn.textContent = state.editingRowIndex ? '수정 완료' : '저장하기';
+    btn.textContent = state.editingRowIndex ? '수정하기' : '저장하기';
   }, 3000);
 }
 
