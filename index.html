@@ -275,7 +275,7 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .empty-btn{height:46px;padding:0 24px;border-radius:var(--radius-md);background:var(--accent);color:#0C0C0D;border:none;font-size:var(--text-caption);font-weight:var(--fw-semibold);cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent}
 
 /* ════════════════════════════════════════ TOOLTIP ═══ */
-.svg-tooltip{position:absolute;background:var(--surface-2);border:1px solid var(--border-mid);color:var(--text);border-radius:var(--radius-sm);padding:10px 12px;font-size:var(--text-micro);font-weight:var(--fw-regular);pointer-events:none;z-index:50;white-space:nowrap;transform:translateX(-50%);box-shadow:0 4px 20px rgba(0,0,0,.40)}
+.svg-tooltip{position:fixed;background:var(--surface-2);border:1px solid var(--border-mid);color:var(--text);border-radius:var(--radius-sm);padding:10px 12px;font-size:var(--text-micro);font-weight:var(--fw-regular);pointer-events:none;z-index:200;white-space:nowrap;transform:translateX(-50%);box-shadow:0 4px 20px rgba(0,0,0,.40)}
 
 /* ══════════════════════════════ HOME SUMMARY CARD ═══ */
 #home-summary-card{background:var(--surface-1);border-radius:var(--radius-xl);padding:34px 28px;margin:20px 16px 12px;border:1px solid var(--border);box-shadow:0 8px 48px rgba(0,0,0,0.50),0 2px 12px rgba(0,0,0,0.30)}
@@ -1610,14 +1610,17 @@ function renderAnnualChart(months) {
 var _tooltipTimeout;
 function showAnnualTooltip(e, bar) {
   var tooltip = document.getElementById('svg-tooltip');
-  var wrap = document.getElementById('annual-chart-wrap');
-  var rect = wrap.getBoundingClientRect();
-  var barRect = bar.getBoundingClientRect();
   var month = bar.dataset.month;
   tooltip.innerHTML = '<strong>' + month + '월</strong><br>총 ' + formatMoney(bar.dataset.total) + '<br>생활비 ' + formatMoney(bar.dataset.living) + '<br>고정비 ' + formatMoney(bar.dataset.fixed);
   tooltip.style.display = 'block';
-  tooltip.style.left = (barRect.left - rect.left + barRect.width/2) + 'px';
-  tooltip.style.top = (barRect.top - rect.top - tooltip.offsetHeight - 8) + 'px';
+  var barRect = bar.getBoundingClientRect();
+  var cx = barRect.left + barRect.width / 2;
+  var above = barRect.top - tooltip.offsetHeight - 8;
+  var top = above >= 8 ? above : barRect.bottom + 8;
+  var halfW = tooltip.offsetWidth / 2;
+  var left = Math.min(Math.max(cx, halfW + 8), window.innerWidth - halfW - 8);
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
   clearTimeout(_tooltipTimeout);
   _tooltipTimeout = setTimeout(function(){ tooltip.style.display='none'; }, 2500);
 }
