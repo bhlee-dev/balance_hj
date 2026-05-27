@@ -35,18 +35,23 @@ PIN은 매 API 요청 바디에 실어 서버 사이드에서 검증함.
 | `--ls-tight` ~ `--ls-wider` | 자간 |
 | `--bg`, `--surface-1/2/3` | 배경·카드 색 |
 | `--accent` | 강조색 (단색, 그라디언트 없음) |
-| `--husband`, `--wife` | 사용자 pill 색상 전용 |
+| `--husband`, `--wife` | 지출 목록 pill(`.pill-husband`/`.pill-wife`) 전용 — seg-ctrl active에 쓰지 말 것 |
 
-**예외**: `.summary-card-amount`는 3열 고밀도 레이아웃 특성상 `clamp(13px, 3.8vw, 22px)` 직접 사용.  
+**예외1**: `.summary-card-amount`는 3열 고밀도 레이아웃 특성상 `clamp(13px, 3.8vw, 22px)` 직접 사용.  
 CSS 토큰(`--text-h1` 등)으로 되돌리면 375px 화면에서 금액 줄바꿈 재발. 건드리지 말 것.
+
+**예외2 — Active State 하드코딩**:  
+- Segmented Control(`.seg-btn.active`): `background:#FFFFFF; color:#121212` (CSS 변수 아님)  
+- Chip 버튼(`.quick-pill.active`): `border:1px solid rgba(255,255,255,0.8); color:#FFFFFF`
 
 ---
 
 ## UX 원칙
 
 - **FAB(플로팅 버튼) 없음**: 입력은 하단 탭의 `기록` 탭으로만 접근.
-- **카테고리 통합**: 고정비(관리비·가스비 등)는 별도 폼 없이 카테고리 목록의 `[🏢 고정비]`로 단일 입력.
+- **카테고리 통합**: 고정비(관리비·가스비 등)는 별도 폼 없이 기록 탭 분류 세그먼트 `고정비` 선택 후 항목 드롭다운으로 입력.
 - **항상 다크모드**: 라이트 모드 분기 없음.
+- **사용자 식별자**: `'희'`(남편), `'정'`(아내). 구버전 DB 레코드에 `'남편'`/`'아내'` 잔존 — 프론트 진입 시 자동 정규화. GAS `ALLOWED_USERS`에 4개 모두 포함. 신규 코드에 `'남편'`/`'아내'` 하드코딩 금지.
 
 ---
 
