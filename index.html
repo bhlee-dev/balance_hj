@@ -419,7 +419,10 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <div class="form-row">
             <span class="form-row-label">날짜</span>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:1">
-              <input class="form-card-input" id="expense-date" type="date">
+              <div style="position:relative;cursor:pointer">
+                <span id="selected-date-display" style="font-size:var(--text-body);color:var(--text);display:block;padding:2px 0"></span>
+                <input id="expense-date" type="date" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer">
+              </div>
               <div style="display:flex;gap:6px">
                 <button class="quick-pill" id="pill-yesterday" type="button">어제</button>
                 <button class="quick-pill" id="pill-today" type="button">오늘</button>
@@ -1171,11 +1174,18 @@ function updateCategoryButtons() {
   updateItemField();
 }
 
+function formatDateDisplay(v) {
+  var p = v.split('-');
+  return p[0] + '. ' + parseInt(p[1], 10) + '. ' + parseInt(p[2], 10) + '.';
+}
+
 function updateDatePills() {
   var dateInput = document.getElementById('expense-date');
   var val = dateInput.value;
   document.getElementById('pill-today').classList.toggle('active', val === todayStr());
   document.getElementById('pill-yesterday').classList.toggle('active', val === yesterdayStr());
+  var dispEl = document.getElementById('selected-date-display');
+  if (dispEl && val) dispEl.textContent = formatDateDisplay(val);
 }
 
 function updateItemSuggestions() {
