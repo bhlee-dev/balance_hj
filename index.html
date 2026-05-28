@@ -1681,6 +1681,11 @@ window.migrateData = async function(jsonData) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('click', () => {
+    const t = document.getElementById('svg-tooltip');
+    if (t) { t.style.display = 'none'; clearTimeout(_tooltipTimeout); }
+  });
+
   document.getElementById('expense-date').value = todayStr();
 
   // 탭 네비게이션
