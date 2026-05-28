@@ -1250,7 +1250,7 @@ function renderMonthlyExpenses(data) {
   
   list.innerHTML = Object.keys(groups).sort((a,b) => b.localeCompare(a)).map((date, di) => {
     const dayTotal = groups[date].reduce((s,i) => s + i.amount, 0);
-    const items = groups[date].map((item, ii) => {
+    const items = [...groups[date]].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map((item, ii) => {
       const pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : (item.user==='희정') ? 'pill-common' : 'pill-wife';
       return `<div class="expense-list-item slide-in" style="animation-delay:${(di*2+ii)*20}ms">
         <div class="ei-left">
