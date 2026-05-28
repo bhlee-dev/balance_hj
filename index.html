@@ -1786,7 +1786,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetchExpenses(state.monthlyYear, state.monthlyMonth);
       found = res.find(e => e.rowIndex === data.rowIndex);
     }
-    if (found) fillFormWithExpense(found);
+    if (found) {
+      state.editingRowIndex = data.rowIndex;
+      state.returnTab = state.currentTab;
+      window.showTab('record');
+      fillFormWithExpense(found);
+    }
   });
   
   document.getElementById('action-delete-btn').addEventListener('click', () => {
