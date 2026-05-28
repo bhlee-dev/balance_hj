@@ -1397,6 +1397,26 @@ function renderAnnualMatrix(months, fixedMonths) {
     footHtml = `<tr class="matrix-footer"><td>합계</td><td>${totL > 0 ? formatNum(totL) : '–'}</td><td>${totF > 0 ? formatNum(totF) : '–'}</td><td class="col-total">${formatNum(totA)}</td></tr>`;
   }
   tbody.innerHTML = html + footHtml;
+
+  if (state.annualView === 'detail') {
+    document.querySelectorAll('#annual-matrix-body .tax-cell').forEach(cell => {
+      cell.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const month = parseInt(this.dataset.month, 10);
+        const rawData = getCached(`yearly_raw_${state.annualYear}`) || [];
+        const entries = rawData.filter(r => {
+          const m = parseInt(r.date.slice(5, 7), 10);
+          return m === month && r.item && r.item.includes('세금');
+        });
+        const tooltip = document.getElementById('svg-tooltip');
+        if (!entries.length) return;
+        const lines = entries.map(e => `${escHtml(e.memo || e.item)} ${formatMoney(e.amount)}`);
+        tooltip.innerHTML = `<strong>${month}월 세금</strong><br>${lines.join('<br>')}`;
+        tooltip.style.display = 'block';
+        positionTooltip(tooltip, this.getBoundingClientRect());
+      });
+    });
+  }
 }
 
 // ====================================================
