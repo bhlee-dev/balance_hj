@@ -85,7 +85,7 @@
 }
 /* ═══════════════════════════════════════════════ BASE ═══ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+html,body{background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,-apple-system,'Roboto',sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 body{display:flex;flex-direction:column;align-items:stretch}
 #app{width:100%;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;position:relative;background:var(--bg);flex-shrink:0}
 @media(min-width:600px){body{align-items:center}#app{max-width:480px}}
@@ -1803,11 +1803,16 @@ function renderAnnualChart(months) {
 
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
+  // CSS 변수를 실제 색상값으로 해석 (Android WebView 호환)
+  var cs = getComputedStyle(document.documentElement);
+  var colBorder = cs.getPropertyValue('--border').trim();
+  var colMuted  = cs.getPropertyValue('--text-muted').trim();
+
   var legend =
     '<rect x="222" y="4" width="7" height="7" fill="#F5F5F7" rx="1"/>' +
-    '<text x="231" y="12" font-size="9" fill="var(--text-muted)">생활비</text>' +
+    '<text x="231" y="12" font-size="9" fill="' + colMuted + '">생활비</text>' +
     '<rect x="278" y="4" width="7" height="7" fill="#8E8E93" rx="1"/>' +
-    '<text x="287" y="12" font-size="9" fill="var(--text-muted)">고정비</text>';
+    '<text x="287" y="12" font-size="9" fill="' + colMuted + '">고정비</text>';
 
   var bars = '';
   months.forEach(function(m, i) {
@@ -1819,7 +1824,7 @@ function renderAnnualChart(months) {
     if (living < 0) living = 0;
 
     if (total <= 0) {
-      bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - MIN_H).toFixed(1) + '" width="' + barW + '" height="' + MIN_H + '" fill="var(--border)" rx="' + rx + '"/>';
+      bars += '<rect x="' + x.toFixed(1) + '" y="' + (baseY - MIN_H).toFixed(1) + '" width="' + barW + '" height="' + MIN_H + '" fill="' + colBorder + '" rx="' + rx + '"/>';
     } else {
       var fixedH = fixed > 0 ? Math.max(fixed / maxVal * chartH, MIN_H) : 0;
       var livingH = living > 0 ? Math.max(living / maxVal * chartH, MIN_H) : 0;
@@ -1842,7 +1847,7 @@ function renderAnnualChart(months) {
       bars += '<rect x="' + x.toFixed(1) + '" y="' + topY.toFixed(1) + '" width="' + barW + '" height="' + (baseY - topY).toFixed(1) + '" fill="transparent" data-month="' + m.month + '" data-total="' + total + '" data-living="' + living + '" data-fixed="' + fixed + '" class="annual-bar" style="cursor:pointer"/>';
     }
 
-    bars += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (PT + chartH + 14) + '" text-anchor="middle" font-size="9" fill="var(--text-muted)">' + m.month + '월</text>';
+    bars += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (PT + chartH + 14) + '" text-anchor="middle" font-size="9" fill="' + colMuted + '">' + m.month + '월</text>';
   });
 
   svg.innerHTML = legend + bars;
