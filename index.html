@@ -184,7 +184,7 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .quick-pill.active{border:1px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.10);color:#FFFFFF}
 
 .amount-pills{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.amount-pill{display:flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border-radius:10px;border:1px solid transparent;background:var(--surface-2);color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:all 0.2s ease-in-out;font-variant-numeric:tabular-nums}
+.amount-pill{display:flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:var(--surface-2);color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:all 0.2s ease-in-out;font-variant-numeric:tabular-nums}
 .amount-pill:active{transform:scale(0.96);border:1px solid rgba(255,255,255,0.8);color:#FFFFFF}
 
 .amount-wrap{position:relative;display:flex;align-items:center}
@@ -314,14 +314,14 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 /* ══════════════════════════════════ HOME DASHBOARD ═══ */
 .dash-card{background:var(--surface-1);border-radius:var(--radius-card);padding:20px 20px 8px;border:1px solid var(--border)}
 .dash-title{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);margin-bottom:12px}
-.dash-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+.dash-row{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
 .dash-row:last-child{border-bottom:none;padding-bottom:12px}
 .dash-row-left{display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0}
-.dash-row-icon{font-size:16px;margin-top:2px;flex-shrink:0}
+.dash-row-icon{font-size:16px;margin-top:2px;flex-shrink:0;filter:grayscale(100%) opacity(0.7)}
 .dash-row-name{font-size:var(--text-body);font-weight:var(--fw-medium);color:var(--text)}
 .dash-compare{font-size:var(--text-micro);font-weight:var(--fw-regular);margin-top:3px}
-.dash-compare.save{color:var(--text)}
-.dash-compare.over{color:#8E8E93}
+.dash-compare.save{color:var(--text-sub)}
+.dash-compare.over{color:var(--text-sub)}
 .dash-compare.flat{color:var(--text-muted)}
 .dash-row-right{text-align:right;flex-shrink:0;padding-left:12px}
 .dash-amount{font-size:var(--text-body);font-weight:var(--fw-semibold);color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
