@@ -1473,6 +1473,7 @@ function updateDatePills() {
   const val = document.getElementById('expense-date').value;
   document.getElementById('pill-today').classList.toggle('active', val === todayStr());
   document.getElementById('pill-yesterday').classList.toggle('active', val === yesterdayStr());
+  document.getElementById('selected-date-display').textContent = val ? formatDate(val) : '';
 }
 function updateItemSuggestions() {
   const datalist = document.getElementById('item-suggestions');
