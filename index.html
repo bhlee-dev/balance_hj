@@ -279,6 +279,26 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .filter-chip.active{border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.10);color:#FFFFFF}
 .filter-chip:active{transform:scale(0.96)}
 
+/* ════════════════════════════════ DATA MGMT SHEET ═══ */
+#home-summary-card{position:relative}
+#home-settings-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
+#home-settings-btn:active{color:#F5F5F7}
+#data-mgmt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
+#data-mgmt-overlay.show{display:flex}
+#data-mgmt-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto}
+.dmgmt-desc{font-size:var(--text-caption);color:var(--text-sub);line-height:1.65;margin:8px 0 20px}
+#dmgmt-loading{padding:28px 0;text-align:center;color:var(--text-muted);font-size:var(--text-caption)}
+.dmgmt-dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
+#sync-result-summary{font-size:var(--text-body);color:var(--text-muted);line-height:1.6;margin:12px 0 8px}
+.sync-diff-section{margin-top:12px}
+.sync-diff-label{font-size:var(--text-micro);color:var(--text-muted);font-weight:var(--fw-medium);letter-spacing:var(--ls-wider);text-transform:uppercase;padding-bottom:6px}
+.sync-diff-item{font-size:var(--text-caption);padding:5px 0;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync-diff-add{color:#A3C4A0}
+.sync-diff-upd{color:#A3B8C4}
+.sync-diff-del{color:#C4A3A3}
+.sync-diff-more{font-size:11px;color:var(--text-muted);padding-top:4px}
+
 /* ════════════════════════════════ CONFIRM DIALOG ═══ */
 #confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 #confirm-overlay.show{display:flex}
@@ -398,6 +418,9 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
   <main id="main-content">
     <div id="tab-home" class="tab-content">
       <div id="home-summary-card">
+        <button id="home-settings-btn" type="button" aria-label="데이터 관리">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
         <div class="home-month-label" id="home-month-label"></div>
         <div class="home-total num" id="home-total">0원</div>
         <div class="home-sub-labels">
@@ -661,6 +684,30 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <div style="display:flex;gap:8px;margin-top:20px">
         <button id="filter-reset-btn" class="action-sheet-btn action-sheet-cancel" type="button" style="flex:1;border:1px solid var(--border-mid);border-radius:var(--radius-md)">초기화</button>
         <button id="filter-apply-btn" class="action-sheet-btn" type="button" style="flex:2;background:var(--accent);color:#000;border-radius:var(--radius-md);font-weight:var(--fw-semibold)">적용하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="data-mgmt-overlay">
+    <div id="data-mgmt-sheet">
+      <div class="action-sheet-title">데이터 관리</div>
+
+      <div id="dmgmt-idle">
+        <p class="dmgmt-desc">Firebase와 Google Sheets의 데이터를 비교하여 불일치 항목을 찾아냅니다.</p>
+        <button id="sync-diagnose-btn" class="action-sheet-btn" type="button" style="background:var(--accent);color:#000;border-radius:var(--radius-md);font-weight:var(--fw-semibold)">동기화 진단하기</button>
+      </div>
+
+      <div id="dmgmt-loading" style="display:none">
+        <span class="dmgmt-dots">데이터 비교 중</span>
+      </div>
+
+      <div id="dmgmt-result" style="display:none">
+        <div id="sync-result-summary"></div>
+        <div id="sync-result-detail"></div>
+        <div style="display:flex;gap:8px;margin-top:20px">
+          <button id="sync-retry-btn" class="action-sheet-btn action-sheet-cancel" type="button" style="flex:1;border:1px solid var(--border-mid);border-radius:var(--radius-md)">다시 진단</button>
+          <button id="sync-apply-btn" class="action-sheet-btn" type="button" style="flex:2;background:var(--accent);color:#000;border-radius:var(--radius-md);font-weight:var(--fw-semibold);display:none">동기화 실행</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1864,6 +1911,131 @@ window.migrateData = async function(jsonData) {
 };
 
 // ====================================================
+// 스마트 동기화 (Firebase ↔ Google Sheets Diff)
+// ====================================================
+async function getAllFirestoreExpenses() {
+  const snap = await getDocs(collection(db, 'expenses'));
+  return snap.docs.map(d => ({ rowIndex: d.id, ...d.data() }));
+}
+
+async function getAllSheetsExpenses() {
+  const pin = localStorage.getItem('app_pin_raw') || '';
+  const res = await fetch(`${GAS_BACKEND_URL}?action=getAllExpenses&pin=${encodeURIComponent(pin)}`, { redirect: 'follow' });
+  const result = await res.json();
+  if (!result.success) throw new Error(result.error || 'GAS 오류');
+  return result.data;
+}
+
+function itemsDiffer(fb, gs) {
+  return String(fb.date || '') !== String(gs.date || '') ||
+    String(fb.item || '') !== String(gs.item || '') ||
+    String(fb.category || '') !== String(gs.category || '') ||
+    String(fb.user || '') !== String(gs.user || '') ||
+    Number(fb.amount || 0) !== Number(gs.amount || 0) ||
+    String(fb.memo || '') !== String(gs.memo || '');
+}
+
+function computeSyncDiff(fbData, gsData) {
+  const fbMap = new Map(fbData.map(e => [e.rowIndex, e]));
+  const gsMap = new Map(gsData.filter(e => e.docId).map(e => [e.docId, e]));
+  const toAdd = [], toUpdate = [], toDelete = [];
+  for (const [docId, fb] of fbMap) {
+    if (!gsMap.has(docId)) toAdd.push(fb);
+    else if (itemsDiffer(fb, gsMap.get(docId))) toUpdate.push({ docId, data: fb, old: gsMap.get(docId) });
+  }
+  for (const [docId] of gsMap) {
+    if (!fbMap.has(docId)) toDelete.push({ docId });
+  }
+  return { toAdd, toUpdate, toDelete };
+}
+
+function setDmgmtStage(stage) {
+  ['idle','loading','result'].forEach(s =>
+    document.getElementById('dmgmt-' + s).style.display = s === stage ? '' : 'none'
+  );
+}
+
+function renderSyncResult(diff) {
+  const { toAdd, toUpdate, toDelete } = diff;
+  const total = toAdd.length + toUpdate.length + toDelete.length;
+  const summaryEl = document.getElementById('sync-result-summary');
+  const detailEl  = document.getElementById('sync-result-detail');
+  const applyBtn  = document.getElementById('sync-apply-btn');
+
+  if (total === 0) {
+    summaryEl.textContent = '모든 데이터가 완벽히 동기화되어 있습니다.';
+    detailEl.innerHTML = '';
+    applyBtn.style.display = 'none';
+    return;
+  }
+
+  summaryEl.innerHTML = `데이터 불일치 발견 &nbsp;·&nbsp; <span style="color:var(--text)">추가 ${toAdd.length}건 &nbsp; 수정 ${toUpdate.length}건 &nbsp; 삭제 ${toDelete.length}건</span>`;
+
+  const makeSection = (label, items, cls, fmt) => !items.length ? '' :
+    `<div class="sync-diff-section">
+      <div class="sync-diff-label">${label} (${items.length}건)</div>
+      ${items.slice(0, 5).map(e => `<div class="sync-diff-item ${cls}">${fmt(e)}</div>`).join('')}
+      ${items.length > 5 ? `<div class="sync-diff-more">…외 ${items.length - 5}건</div>` : ''}
+    </div>`;
+
+  detailEl.innerHTML = [
+    makeSection('추가될 항목', toAdd, 'sync-diff-add',
+      e => `+ ${e.date}  ${escHtml(e.item)}  ${formatMoney(e.amount)}`),
+    makeSection('수정될 항목', toUpdate, 'sync-diff-upd',
+      e => `↻ ${e.data.date}  ${escHtml(e.data.item)}  ${formatMoney(e.data.amount)}`),
+    makeSection('삭제될 항목', toDelete, 'sync-diff-del',
+      e => `− ${e.docId.slice(0, 20)}…`)
+  ].join('');
+
+  applyBtn.style.display = '';
+  applyBtn._diff = diff;
+}
+
+async function runSyncDiagnosis() {
+  setDmgmtStage('loading');
+  try {
+    const [fbData, gsData] = await Promise.all([
+      getAllFirestoreExpenses(),
+      getAllSheetsExpenses()
+    ]);
+    renderSyncResult(computeSyncDiff(fbData, gsData));
+    setDmgmtStage('result');
+  } catch (e) {
+    setDmgmtStage('idle');
+    document.querySelector('#dmgmt-idle .dmgmt-desc').textContent = '오류: ' + e.message;
+  }
+}
+
+async function applySmartSync(diff) {
+  const applyBtn = document.getElementById('sync-apply-btn');
+  const retryBtn = document.getElementById('sync-retry-btn');
+  const orig = applyBtn.textContent;
+  applyBtn.textContent = '동기화 중...';
+  applyBtn.disabled = retryBtn.disabled = true;
+  const pin = localStorage.getItem('app_pin_raw') || '';
+  try {
+    const res = await fetch(GAS_BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'smartSync', pin, toAdd: diff.toAdd, toUpdate: diff.toUpdate, toDelete: diff.toDelete }),
+      redirect: 'follow'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(`동기화 완료 — 추가 ${result.added}건 · 수정 ${result.updated}건 · 삭제 ${result.deleted}건`);
+      document.getElementById('data-mgmt-overlay').classList.remove('show');
+    } else {
+      showToast('동기화 실패: ' + (result.error || '알 수 없는 오류'));
+    }
+  } catch (e) {
+    showToast('네트워크 오류: ' + e.message);
+  } finally {
+    applyBtn.textContent = orig;
+    applyBtn.disabled = retryBtn.disabled = false;
+  }
+}
+
+// ====================================================
 // 🔧 동기화 테스트 유틸 (콘솔에서 호출)
 //    await window.testDbSync()
 //    await window.testDbSyncCleanup("firestore-doc-id")
@@ -2101,6 +2273,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('confirm-cancel-btn').addEventListener('click', () => document.getElementById('confirm-overlay').classList.remove('show'));
   document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+
+  // 데이터 관리 모달
+  document.getElementById('home-settings-btn').addEventListener('click', () => {
+    setDmgmtStage('idle');
+    document.querySelector('#dmgmt-idle .dmgmt-desc').textContent = 'Firebase와 Google Sheets의 데이터를 비교하여 불일치 항목을 찾아냅니다.';
+    document.getElementById('data-mgmt-overlay').classList.add('show');
+  });
+  document.getElementById('sync-diagnose-btn').addEventListener('click', runSyncDiagnosis);
+  document.getElementById('sync-retry-btn').addEventListener('click', runSyncDiagnosis);
+  document.getElementById('sync-apply-btn').addEventListener('click', function() {
+    if (this._diff) applySmartSync(this._diff);
+  });
+  document.getElementById('data-mgmt-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
 
   // 시트 동기화 버튼
   document.getElementById('monthly-sync-btn').addEventListener('click', () => {

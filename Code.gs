@@ -98,6 +98,7 @@ function doGet(e) {
     if (action === 'getYearlySummary')              return jsonResponse(getYearlySummary(+p.year));
     if (action === 'getAvailableYears')             return jsonResponse(getAvailableYears());
     if (action === 'getYearlyFixedBreakdown')       return jsonResponse(getYearlyFixedBreakdown(+p.year));
+    if (action === 'getAllExpenses')                 return jsonResponse(getAllExpenses());
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
     return jsonResponse({ success: false, error: err.message });
@@ -120,6 +121,7 @@ function doPost(e) {
     if (action === 'updateExpense') return jsonResponse(updateExpense(payload.docId, payload.data));
     if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.docId));
     if (action === 'syncMonth')     return jsonResponse(syncMonth(+payload.year, +payload.month, payload.data || []));
+    if (action === 'smartSync')     return jsonResponse(smartSync(payload.toAdd || [], payload.toUpdate || [], payload.toDelete || []));
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
     return jsonResponse({ success: false, error: err.message });
@@ -305,6 +307,106 @@ function syncMonth(year, month, rows) {
     return { success: true, deleted: toDelete.length, inserted: rows.length };
   } catch (e) {
     Logger.log('syncMonth 오류: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 전체 지출 조회 (스마트 동기화용) — H열 docId 포함
+ */
+function getAllExpenses() {
+  try {
+    var sheet = getSheet(RAW_SHEET);
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, data: [] };
+    var values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+    var result = [];
+    for (var i = 0; i < values.length; i++) {
+      var row = values[i];
+      if (!row[0]) continue;
+      var dateStr = typeof row[0] === 'string' ? row[0]
+        : Utilities.formatDate(new Date(row[0]), 'Asia/Seoul', 'yyyy-MM-dd');
+      result.push({
+        rowNum: i + 2,
+        date: dateStr,
+        item: String(row[1] || ''),
+        category: String(row[2] || ''),
+        user: String(row[3] || ''),
+        amount: parseInt(row[4], 10) || 0,
+        memo: String(row[5] || ''),
+        createdAt: String(row[6] || ''),
+        docId: String(row[7] || '')
+      });
+    }
+    return { success: true, data: result };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Firebase → Sheets 스마트 동기화 (Diff 기반 일괄 처리)
+ * @param {Array} toAdd    Firebase에만 있는 항목
+ * @param {Array} toUpdate 양쪽에 있지만 내용이 다른 항목 [{docId, data}]
+ * @param {Array} toDelete Sheets에만 있는 항목 [{docId}]
+ */
+function smartSync(toAdd, toUpdate, toDelete) {
+  try {
+    var sheet = getSheet(RAW_SHEET);
+    var added = 0, updated = 0, deleted = 0;
+
+    // 추가
+    for (var i = 0; i < toAdd.length; i++) {
+      var a = toAdd[i];
+      sheet.appendRow([
+        sanitizeString(a.date || '', 10),
+        sanitizeString(a.item || '', 50),
+        sanitizeString(a.category || '', 20),
+        sanitizeString(a.user || '', 10),
+        parseAmount(a.amount),
+        sanitizeString(a.memo || '', 200),
+        sanitizeString(a.createdAt || '', 30),
+        sanitizeString(a.rowIndex || '', 100)  // rowIndex = Firestore docId
+      ]);
+      added++;
+    }
+
+    // 수정
+    for (var j = 0; j < toUpdate.length; j++) {
+      var u = toUpdate[j];
+      var rowIdx = findRowByDocId(sheet, u.docId);
+      if (rowIdx === -1) continue;
+      var d = u.data;
+      sheet.getRange(rowIdx, 1, 1, 6).setValues([[
+        sanitizeString(d.date || '', 10),
+        sanitizeString(d.item || '', 50),
+        sanitizeString(d.category || '', 20),
+        sanitizeString(d.user || '', 10),
+        parseAmount(d.amount),
+        sanitizeString(d.memo || '', 200)
+      ]]);
+      updated++;
+    }
+
+    // 삭제 (아래에서 위로 — 행 번호 밀림 방지)
+    var delIds = toDelete.map(function(e) { return e.docId; });
+    if (delIds.length > 0) {
+      var all = sheet.getDataRange().getValues();
+      var rows = [];
+      for (var k = all.length - 1; k >= 1; k--) {
+        if (delIds.indexOf(String(all[k][7])) !== -1) rows.push(k + 1);
+      }
+      for (var l = 0; l < rows.length; l++) {
+        sheet.deleteRow(rows[l]);
+        deleted++;
+      }
+    }
+
+    CacheService.getScriptCache().removeAll(['recent']);
+    Logger.log('smartSync: added ' + added + ', updated ' + updated + ', deleted ' + deleted);
+    return { success: true, added: added, updated: updated, deleted: deleted };
+  } catch (e) {
+    Logger.log('smartSync 오류: ' + e.message);
     return { success: false, error: e.message };
   }
 }
