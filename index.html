@@ -284,12 +284,22 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #home-sync-btn:active{color:#D1D5DB}
 #data-mgmt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
 #data-mgmt-overlay.show{display:flex}
-#data-mgmt-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto}
+#data-mgmt-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto;min-height:260px}
+.dmgmt-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);margin:0 auto 16px}
+.dmgmt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.dmgmt-title{font-size:var(--text-micro);font-weight:var(--fw-medium);color:var(--text-muted);letter-spacing:var(--ls-wider);text-transform:uppercase}
+#dmgmt-close-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .15s;margin:-4px -4px 0 0}
+#dmgmt-close-btn:active{color:#D1D5DB}
 .dmgmt-desc{font-size:var(--text-caption);color:var(--text-sub);line-height:1.65;margin:8px 0 20px}
-#dmgmt-loading{padding:28px 0;text-align:center;color:var(--text-muted);font-size:var(--text-caption)}
-.dmgmt-dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
-@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
-#sync-result-summary{font-size:var(--text-body);color:var(--text-muted);line-height:1.6;margin:12px 0 8px}
+#dmgmt-loading{padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:14px}
+.dmgmt-spinner{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,0.08);border-top-color:#9CA3AF;animation:spin-mono .8s linear infinite}
+@keyframes spin-mono{to{transform:rotate(360deg)}}
+.dmgmt-loading-text{font-size:var(--text-caption);color:var(--text-muted)}
+.sync-stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.sync-stat-row:last-child{border-bottom:none}
+.sync-stat-label{font-size:var(--text-caption);color:#9CA3AF}
+.sync-stat-count{font-size:var(--text-caption);font-weight:var(--fw-semibold);color:#F9FAFB;font-variant-numeric:tabular-nums}
+.sync-stat-count.dim{color:#4B5563}
 .sync-diff-section{margin-top:12px}
 .sync-diff-label{font-size:var(--text-micro);color:var(--text-muted);font-weight:var(--fw-medium);letter-spacing:var(--ls-wider);text-transform:uppercase;padding-bottom:6px}
 .sync-diff-item{font-size:var(--text-caption);padding:5px 0;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -684,7 +694,13 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
   <div id="data-mgmt-overlay">
     <div id="data-mgmt-sheet">
-      <div class="action-sheet-title">데이터 관리</div>
+      <div class="dmgmt-handle"></div>
+      <div class="dmgmt-header">
+        <span class="dmgmt-title">데이터 관리</span>
+        <button id="dmgmt-close-btn" type="button" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
       <div id="dmgmt-idle">
         <p class="dmgmt-desc">Firebase와 Google Sheets의 데이터를 비교하여 불일치 항목을 찾아냅니다.</p>
@@ -692,7 +708,8 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       </div>
 
       <div id="dmgmt-loading" style="display:none">
-        <span class="dmgmt-dots">데이터 비교 중</span>
+        <div class="dmgmt-spinner"></div>
+        <div class="dmgmt-loading-text">데이터 비교 중...</div>
       </div>
 
       <div id="dmgmt-result" style="display:none">
@@ -702,6 +719,11 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <button id="sync-retry-btn" class="action-sheet-btn action-sheet-cancel" type="button" style="flex:1;border:1px solid var(--border-mid);border-radius:var(--radius-md)">다시 진단</button>
           <button id="sync-apply-btn" class="action-sheet-btn" type="button" style="flex:2;background:var(--accent);color:#000;border-radius:var(--radius-md);font-weight:var(--fw-semibold);display:none">동기화 실행</button>
         </div>
+      </div>
+
+      <div id="dmgmt-done" style="display:none">
+        <div id="sync-done-detail"></div>
+        <button id="sync-done-btn" class="action-sheet-btn" type="button" style="margin-top:20px;border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius-md);color:var(--text)">확인</button>
       </div>
     </div>
   </div>
@@ -1900,7 +1922,7 @@ function computeSyncDiff(fbData, gsData) {
 }
 
 function setDmgmtStage(stage) {
-  ['idle','loading','result'].forEach(s =>
+  ['idle','loading','result','done'].forEach(s =>
     document.getElementById('dmgmt-' + s).style.display = s === stage ? '' : 'none'
   );
 }
@@ -1912,14 +1934,27 @@ function renderSyncResult(diff) {
   const detailEl  = document.getElementById('sync-result-detail');
   const applyBtn  = document.getElementById('sync-apply-btn');
 
+  const statRow = (label, count) => {
+    const dim = count === 0 ? ' dim' : '';
+    return `<div class="sync-stat-row"><span class="sync-stat-label">${label}</span><span class="sync-stat-count${dim}">${count}건</span></div>`;
+  };
+
   if (total === 0) {
-    summaryEl.textContent = '모든 데이터가 완벽히 동기화되어 있습니다.';
+    summaryEl.innerHTML = [
+      statRow('추가 필요', 0),
+      statRow('수정 필요', 0),
+      statRow('삭제 필요', 0)
+    ].join('') + `<p style="font-size:var(--text-caption);color:var(--text-muted);margin:14px 0 0;line-height:1.6">모든 데이터가 완벽히 동기화되어 있습니다.</p>`;
     detailEl.innerHTML = '';
     applyBtn.style.display = 'none';
     return;
   }
 
-  summaryEl.innerHTML = `데이터 불일치 발견 &nbsp;·&nbsp; <span style="color:var(--text)">추가 ${toAdd.length}건 &nbsp; 수정 ${toUpdate.length}건 &nbsp; 삭제 ${toDelete.length}건</span>`;
+  summaryEl.innerHTML = [
+    statRow('추가 필요', toAdd.length),
+    statRow('수정 필요', toUpdate.length),
+    statRow('삭제 필요', toDelete.length)
+  ].join('');
 
   const makeSection = (label, items, cls, fmt) => !items.length ? '' :
     `<div class="sync-diff-section">
@@ -1972,8 +2007,16 @@ async function applySmartSync(diff) {
     });
     const result = await res.json();
     if (result.success) {
-      showToast(`동기화 완료 — 추가 ${result.added}건 · 수정 ${result.updated}건 · 삭제 ${result.deleted}건`);
-      document.getElementById('data-mgmt-overlay').classList.remove('show');
+      const statRow = (label, count) => {
+        const dim = count === 0 ? ' dim' : '';
+        return `<div class="sync-stat-row"><span class="sync-stat-label">${label}</span><span class="sync-stat-count${dim}">${count}건</span></div>`;
+      };
+      document.getElementById('sync-done-detail').innerHTML = [
+        statRow('추가 완료', result.added),
+        statRow('수정 완료', result.updated),
+        statRow('삭제 완료', result.deleted)
+      ].join('');
+      setDmgmtStage('done');
     } else {
       showToast('동기화 실패: ' + (result.error || '알 수 없는 오류'));
     }
@@ -2237,6 +2280,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('data-mgmt-overlay').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('show');
+  });
+  document.getElementById('dmgmt-close-btn').addEventListener('click', () => {
+    document.getElementById('data-mgmt-overlay').classList.remove('show');
+  });
+  document.getElementById('sync-done-btn').addEventListener('click', () => {
+    document.getElementById('data-mgmt-overlay').classList.remove('show');
   });
 
   // 필터/정렬 바텀시트
