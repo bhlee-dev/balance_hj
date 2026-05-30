@@ -765,6 +765,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-check.js";
 import { 
   getFirestore, 
   initializeFirestore, 
@@ -804,6 +805,17 @@ const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycby8rKMnV6cwkA5S
 
 // Firestore 및 Auth 셋업 (오프라인 캐싱 활성화)
 const app = initializeApp(firebaseConfig);
+
+// ── Firebase App Check (reCAPTCHA v3) ──
+// Step 1: https://www.google.com/recaptcha/admin/create 에서 v3 사이트 키 발급
+// Step 2: Firebase Console → App Check → 웹앱 등록 → reCAPTCHA v3 사이트 키 입력
+// Step 3: Firebase Console → App Check → API 탭 → Firestore → 적용(Enforce)
+const RECAPTCHA_SITE_KEY = 'YOUR_RECAPTCHA_V3_SITE_KEY'; // ← 발급받은 키로 교체
+initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+  isTokenAutoRefreshEnabled: true
+});
+
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
 });
