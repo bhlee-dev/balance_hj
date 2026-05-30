@@ -262,6 +262,16 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .action-sheet-btn:active{background:var(--surface-2)}
 .action-sheet-btn.danger{color:var(--danger)}
 .action-sheet-cancel{color:var(--text-muted);margin-bottom:0}
+#monthly-filter-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
+#monthly-filter-btn.active{color:#F5F5F7}
+#filter-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
+#filter-sheet-overlay.show{display:flex}
+#filter-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:80vh;overflow-y:auto}
+.filter-section-label{font-size:var(--text-micro);color:var(--text-muted);font-weight:var(--fw-medium);letter-spacing:var(--ls-wider);text-transform:uppercase;padding:14px 0 8px}
+.filter-chips{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:4px}
+.filter-chip{height:32px;padding:0 14px;border-radius:999px;border:1px solid transparent;background:var(--surface-2);color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:all .15s ease-in-out;white-space:nowrap}
+.filter-chip.active{border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.10);color:#FFFFFF}
+.filter-chip:active{transform:scale(0.96)}
 
 /* ════════════════════════════════ CONFIRM DIALOG ═══ */
 #confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
@@ -533,7 +543,12 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <div class="section-header">이번 달 고정비 내역</div>
       <div class="fixed-breakdown-list" id="monthly-fixed-breakdown"></div>
 
-      <div class="section-header">일별 지출</div>
+      <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
+        <span>일별 지출</span>
+        <button id="monthly-filter-btn" type="button" aria-label="필터/정렬">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        </button>
+      </div>
       <div id="monthly-expense-list"></div>
     </div>
 
@@ -597,6 +612,45 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <button class="action-sheet-btn" id="action-edit-btn" type="button">수정</button>
       <button class="action-sheet-btn danger" id="action-delete-btn" type="button">삭제</button>
       <button class="action-sheet-btn action-sheet-cancel" id="action-cancel-btn" type="button">취소</button>
+    </div>
+  </div>
+
+  <div id="filter-sheet-overlay">
+    <div id="filter-sheet">
+      <div class="action-sheet-title">필터 / 정렬</div>
+
+      <div class="filter-section-label">정렬</div>
+      <div class="filter-chips" id="fchip-sort">
+        <button class="filter-chip active" data-val="date_desc" type="button">최신순</button>
+        <button class="filter-chip" data-val="date_asc" type="button">과거순</button>
+        <button class="filter-chip" data-val="amt_desc" type="button">고액순</button>
+        <button class="filter-chip" data-val="amt_asc" type="button">저액순</button>
+      </div>
+
+      <div class="filter-section-label">카테고리</div>
+      <div class="filter-chips" id="fchip-cat">
+        <button class="filter-chip active" data-val="" type="button">전체</button>
+        <button class="filter-chip" data-val="식비/주류" type="button">🍽️ 식비/주류</button>
+        <button class="filter-chip" data-val="교통/차량" type="button">🚗 교통/차량</button>
+        <button class="filter-chip" data-val="주거/생활" type="button">🏠 주거/생활</button>
+        <button class="filter-chip" data-val="쇼핑/의료" type="button">🛍️ 쇼핑/의료</button>
+        <button class="filter-chip" data-val="취미/여가" type="button">⛰️ 취미/여가</button>
+        <button class="filter-chip" data-val="여행/숙박" type="button">✈️ 여행/숙박</button>
+        <button class="filter-chip" data-val="고정비" type="button">🏢 고정비</button>
+        <button class="filter-chip" data-val="기타" type="button">📦 기타</button>
+      </div>
+
+      <div class="filter-section-label">사용자</div>
+      <div class="filter-chips" id="fchip-user">
+        <button class="filter-chip active" data-val="" type="button">전체</button>
+        <button class="filter-chip" data-val="희" type="button">희</button>
+        <button class="filter-chip" data-val="정" type="button">정</button>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:20px">
+        <button id="filter-reset-btn" class="action-sheet-btn action-sheet-cancel" type="button" style="flex:1;border:1px solid var(--border-mid);border-radius:var(--radius-md)">초기화</button>
+        <button id="filter-apply-btn" class="action-sheet-btn" type="button" style="flex:2;background:var(--accent);color:#000;border-radius:var(--radius-md);font-weight:var(--fw-semibold)">적용하기</button>
+      </div>
     </div>
   </div>
 
@@ -696,6 +750,10 @@ const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의�
 const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
+
+let _monthlyAllData = null;
+let _mFilter = { sort: 'date_desc', cat: '', user: '' };
+let _mFilterPending = { sort: 'date_desc', cat: '', user: '' };
 
 const state = {
   currentTab: 'home',
@@ -1072,7 +1130,8 @@ async function loadMonthlyData() {
     const summary = calcMonthlySummary(year, month, data);
     
     renderMonthlySummary(summary);
-    renderMonthlyExpenses(data);
+    _monthlyAllData = data;
+    applyMonthlyFilter();
     renderMonthlyFixedBreakdown(data);
     renderMonthlyUserSplit(data);
   } catch(e) {
@@ -1249,7 +1308,7 @@ function renderMonthlyFixedBreakdown(expenses) {
   }).join('');
 }
 
-function renderMonthlyExpenses(data) {
+function renderMonthlyExpenses(data, sort = 'date_desc') {
   const list = document.getElementById('monthly-expense-list');
   if (!data || data.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">🗒️</div><div class="empty-text">이번 달 지출 내역이 없어요</div><button class="empty-btn" onclick="window.showTab(\'record\')">첫 지출 기록하기</button></div>';
@@ -1260,10 +1319,19 @@ function renderMonthlyExpenses(data) {
     if (!groups[item.date]) groups[item.date] = [];
     groups[item.date].push(item);
   });
-  
-  list.innerHTML = Object.keys(groups).sort((a,b) => b.localeCompare(a)).map((date, di) => {
-    const dayTotal = groups[date].reduce((s,i) => s + i.amount, 0);
-    const items = [...groups[date]].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map((item, ii) => {
+
+  const sortedDates = Object.keys(groups).sort((a, b) =>
+    sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a)
+  );
+
+  list.innerHTML = sortedDates.map((date, di) => {
+    const sortedItems = [...groups[date]].sort((a, b) => {
+      if (sort === 'amt_desc') return b.amount - a.amount;
+      if (sort === 'amt_asc')  return a.amount - b.amount;
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+    const dayTotal = sortedItems.reduce((s,i) => s + i.amount, 0);
+    const items = sortedItems.map((item, ii) => {
       const pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : (item.user==='희정') ? 'pill-common' : 'pill-wife';
       return `<div class="expense-list-item slide-in" style="animation-delay:${(di*2+ii)*20}ms">
         <div class="ei-left">
@@ -1284,6 +1352,20 @@ function renderMonthlyExpenses(data) {
     }).join('');
     return `<div class="date-group"><div class="date-group-header"><span>${formatDate(date)}</span><span class="date-group-total">${formatMoney(dayTotal)}</span></div>${items}</div>`;
   }).join('');
+}
+
+function applyMonthlyFilter() {
+  if (!_monthlyAllData) return;
+  let data = [..._monthlyAllData];
+  if (_mFilter.cat) data = data.filter(e => e.category === _mFilter.cat);
+  if (_mFilter.user) data = data.filter(e =>
+    e.user === _mFilter.user ||
+    (_mFilter.user === '희' && e.user === '남편') ||
+    (_mFilter.user === '정' && e.user === '아내')
+  );
+  renderMonthlyExpenses(data, _mFilter.sort);
+  const isActive = _mFilter.cat !== '' || _mFilter.user !== '' || _mFilter.sort !== 'date_desc';
+  document.getElementById('monthly-filter-btn')?.classList.toggle('active', isActive);
 }
 
 function updateAnnualNavBtns() {
@@ -1863,6 +1945,46 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('confirm-cancel-btn').addEventListener('click', () => document.getElementById('confirm-overlay').classList.remove('show'));
   document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+
+  // 필터/정렬 바텀시트
+  document.getElementById('monthly-filter-btn').addEventListener('click', () => {
+    _mFilterPending = { ..._mFilter };
+    ['sort', 'cat', 'user'].forEach(type => {
+      const id = type === 'sort' ? 'fchip-sort' : type === 'cat' ? 'fchip-cat' : 'fchip-user';
+      document.querySelectorAll(`#${id} .filter-chip`).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === _mFilterPending[type]);
+      });
+    });
+    document.getElementById('filter-sheet-overlay').classList.add('show');
+  });
+
+  ['fchip-sort', 'fchip-cat', 'fchip-user'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      const chip = e.target.closest('.filter-chip');
+      if (!chip) return;
+      document.querySelectorAll(`#${id} .filter-chip`).forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const type = id === 'fchip-sort' ? 'sort' : id === 'fchip-cat' ? 'cat' : 'user';
+      _mFilterPending[type] = chip.dataset.val;
+    });
+  });
+
+  document.getElementById('filter-apply-btn').addEventListener('click', () => {
+    _mFilter = { ..._mFilterPending };
+    document.getElementById('filter-sheet-overlay').classList.remove('show');
+    applyMonthlyFilter();
+  });
+
+  document.getElementById('filter-reset-btn').addEventListener('click', () => {
+    _mFilter = { sort: 'date_desc', cat: '', user: '' };
+    _mFilterPending = { sort: 'date_desc', cat: '', user: '' };
+    document.getElementById('filter-sheet-overlay').classList.remove('show');
+    applyMonthlyFilter();
+  });
+
+  document.getElementById('filter-sheet-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
 
   // ====================================================
   // [ 핵심 4 ] Firebase Auth 기반 앱 초기화 및 PIN 로직
