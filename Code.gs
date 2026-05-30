@@ -117,8 +117,8 @@ function doPost(e) {
   var action = payload.action || '';
   try {
     if (action === 'addExpense')    return jsonResponse(addExpense(payload.data));
-    if (action === 'updateExpense') return jsonResponse(updateExpense(payload.rowIndex, payload.data));
-    if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.rowIndex));
+    if (action === 'updateExpense') return jsonResponse(updateExpense(payload.docId, payload.data));
+    if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.docId));
     if (action === 'syncMonth')     return jsonResponse(syncMonth(+payload.year, +payload.month, payload.data || []));
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
@@ -131,8 +131,21 @@ function doPost(e) {
 // ====================================================
 
 /**
+ * H열(docId)로 시트 행 번호를 찾는다. 없으면 -1 반환.
+ */
+function findRowByDocId(sheet, docId) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  const ids = sheet.getRange(2, 8, lastRow - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i][0] === docId) return i + 2;
+  }
+  return -1;
+}
+
+/**
  * 일상 지출 추가
- * @param {Object} data - { date, item, category, user, amount, memo }
+ * @param {Object} data - { date, item, category, user, amount, memo, docId }
  */
 function addExpense(data) {
   try {
@@ -153,9 +166,10 @@ function addExpense(data) {
 
     const memo = sanitizeString(data.memo || '', 200);
     const createdAt = new Date().toISOString();
+    const docId = sanitizeString(data.docId || '', 100);
 
     const sheet = getSheet(RAW_SHEET);
-    sheet.appendRow([date, item, category, user, amount, memo, createdAt]);
+    sheet.appendRow([date, item, category, user, amount, memo, createdAt, docId]);
 
     // 해당 날짜의 년/월 캐시 무효화
     const year = parseInt(date.slice(0, 4), 10);
@@ -169,57 +183,11 @@ function addExpense(data) {
 }
 
 /**
- * 월 단위 Firebase → 시트 전체 덮어쓰기 동기화
- * @param {number} year
- * @param {number} month
- * @param {Array}  rows  Firebase 문서 배열
- */
-function syncMonth(year, month, rows) {
-  try {
-    const sheet = getSheet(RAW_SHEET);
-    const prefix = String(year) + '-' + String(month).padStart(2, '0') + '-';
-
-    // 해당 월 기존 행 위치 수집 (아래에서 위로 삭제해야 행 번호 밀림 없음)
-    const allValues = sheet.getDataRange().getValues();
-    const toDelete = [];
-    for (var i = allValues.length - 1; i >= 1; i--) {
-      if (String(allValues[i][0]).startsWith(prefix)) toDelete.push(i + 1);
-    }
-    for (var d = 0; d < toDelete.length; d++) {
-      sheet.deleteRow(toDelete[d]);
-    }
-
-    // Firebase 데이터 삽입
-    if (rows.length > 0) {
-      var sanitized = rows.map(function(r) {
-        return [
-          sanitizeString(r.date || '', 10),
-          sanitizeString(r.item || '', 50),
-          sanitizeString(r.category || '', 20),
-          sanitizeString(r.user || '', 10),
-          parseAmount(r.amount),
-          sanitizeString(r.memo || '', 200),
-          sanitizeString(r.createdAt || '', 30)
-        ];
-      });
-      sheet.getRange(sheet.getLastRow() + 1, 1, sanitized.length, 7).setValues(sanitized);
-    }
-
-    invalidateCache(year, month);
-    Logger.log('syncMonth 완료: ' + year + '-' + month + ' | 삭제 ' + toDelete.length + '행, 삽입 ' + rows.length + '행');
-    return { success: true, deleted: toDelete.length, inserted: rows.length };
-  } catch (e) {
-    Logger.log('syncMonth 오류: ' + e.message);
-    return { success: false, error: e.message };
-  }
-}
-
-/**
- * 일상 지출 수정
- * @param {number} rowIndex - RAW_DATA 실제 행 번호 (2부터 시작)
+ * 일상 지출 수정 (H열 docId로 행을 찾아서 수정)
+ * @param {string} docId - Firestore 문서 ID
  * @param {Object} data - { date, item, category, user, amount, memo }
  */
-function updateExpense(rowIndex, data) {
+function updateExpense(docId, data) {
   try {
     const date = sanitizeString(data.date, 10);
     if (!validateDate(date)) return { success: false, error: '날짜 형식이 올바르지 않습니다.' };
@@ -239,12 +207,15 @@ function updateExpense(rowIndex, data) {
     const memo = sanitizeString(data.memo || '', 200);
 
     const sheet = getSheet(RAW_SHEET);
+    const rowIndex = findRowByDocId(sheet, docId);
+    if (rowIndex === -1) return { success: false, error: '시트에서 해당 항목을 찾을 수 없습니다.' };
+
     // 업데이트 전 기존 날짜 읽기 (날짜 변경 시 이전 월 캐시도 무효화)
     const oldDateVal = sheet.getRange(rowIndex, 1).getValue();
     const oldDateStr = typeof oldDateVal === 'string' ? oldDateVal
       : Utilities.formatDate(new Date(oldDateVal), 'Asia/Seoul', 'yyyy-MM-dd');
 
-    // A~F열만 수정, G열(created_at) 유지
+    // A~F열만 수정, G열(created_at), H열(docId) 유지
     sheet.getRange(rowIndex, 1, 1, 6).setValues([[date, item, category, user, amount, memo]]);
 
     const year = parseInt(date.slice(0, 4), 10);
@@ -265,14 +236,14 @@ function updateExpense(rowIndex, data) {
 }
 
 /**
- * 일상 지출 삭제
- * @param {number} rowIndex - RAW_DATA 실제 행 번호
+ * 일상 지출 삭제 (H열 docId로 행을 찾아서 삭제)
+ * @param {string} docId - Firestore 문서 ID
  */
-function deleteExpense(rowIndex) {
+function deleteExpense(docId) {
   try {
     const sheet = getSheet(RAW_SHEET);
-    const lastRow = sheet.getLastRow();
-    if (rowIndex < 2 || rowIndex > lastRow) return { success: false, error: '유효하지 않은 행 번호입니다.' };
+    const rowIndex = findRowByDocId(sheet, docId);
+    if (rowIndex === -1) return { success: false, error: '시트에서 해당 항목을 찾을 수 없습니다.' };
 
     // 삭제 전 날짜 읽어서 캐시 무효화
     const dateVal = sheet.getRange(rowIndex, 1).getValue();
@@ -287,6 +258,53 @@ function deleteExpense(rowIndex) {
 
     return { success: true };
   } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 월 단위 Firebase → 시트 전체 덮어쓰기 동기화
+ * @param {number} year
+ * @param {number} month
+ * @param {Array}  rows  Firebase 문서 배열 { date, item, category, user, amount, memo, createdAt, rowIndex(docId) }
+ */
+function syncMonth(year, month, rows) {
+  try {
+    var sheet = getSheet(RAW_SHEET);
+    var prefix = String(year) + '-' + String(month).padStart(2, '0') + '-';
+
+    // 해당 월 기존 행 위치 수집 (아래에서 위로 삭제해야 행 번호 밀림 없음)
+    var allValues = sheet.getDataRange().getValues();
+    var toDelete = [];
+    for (var i = allValues.length - 1; i >= 1; i--) {
+      if (String(allValues[i][0]).startsWith(prefix)) toDelete.push(i + 1);
+    }
+    for (var d = 0; d < toDelete.length; d++) {
+      sheet.deleteRow(toDelete[d]);
+    }
+
+    // Firebase 데이터 삽입 (8열: date, item, category, user, amount, memo, createdAt, docId)
+    if (rows.length > 0) {
+      var sanitized = rows.map(function(r) {
+        return [
+          sanitizeString(r.date || '', 10),
+          sanitizeString(r.item || '', 50),
+          sanitizeString(r.category || '', 20),
+          sanitizeString(r.user || '', 10),
+          parseAmount(r.amount),
+          sanitizeString(r.memo || '', 200),
+          sanitizeString(r.createdAt || '', 30),
+          sanitizeString(r.rowIndex || '', 100)  // rowIndex = Firestore docId
+        ];
+      });
+      sheet.getRange(sheet.getLastRow() + 1, 1, sanitized.length, 8).setValues(sanitized);
+    }
+
+    invalidateCache(year, month);
+    Logger.log('syncMonth 완료: ' + year + '-' + month + ' | 삭제 ' + toDelete.length + '행, 삽입 ' + rows.length + '행');
+    return { success: true, deleted: toDelete.length, inserted: rows.length };
+  } catch (e) {
+    Logger.log('syncMonth 오류: ' + e.message);
     return { success: false, error: e.message };
   }
 }
