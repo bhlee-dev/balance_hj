@@ -209,7 +209,7 @@ textarea.form-input{height:auto;padding:14px 16px;resize:none;line-height:1.6}
 .form-row-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 16px}
 .seg-ctrl{display:flex;background:rgba(255,255,255,0.10);border-radius:10px;padding:2px;gap:2px}
 .form-row .seg-ctrl{min-width:0;align-self:center;height:38px}
-#seg-major{flex:1}
+#seg-major{flex:1;max-width:220px}
 #seg-user{width:100px}
 .seg-btn{flex:1;height:34px;padding:0 14px;border:none;border-radius:8px;background:transparent;color:#8E8E93;font-size:var(--text-caption);font-weight:var(--fw-medium);cursor:pointer;font-family:inherit;transition:all 0.2s ease-in-out;white-space:nowrap;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
 .seg-btn.active{background:#FFFFFF;color:#121212}
@@ -480,7 +480,6 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
             <div class="seg-ctrl" id="seg-major">
               <button class="seg-btn" data-major="생활비" type="button">생활비</button>
               <button class="seg-btn" data-major="고정비" type="button">고정비</button>
-              <button class="seg-btn" data-major="기타" type="button">기타</button>
             </div>
           </div>
           <div class="form-row-divider" id="subcat-divider" style="display:none"></div>
@@ -820,7 +819,7 @@ const CATEGORY_EMOJI = {
   '고정비':'🏢', '기타':'📦',
   '식비':'🍽️', '교통':'🚗', '생활':'🏠', '의료':'🛍️', '여가':'⛰️'
 };
-const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비','기타'];
+const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비'];
 const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
@@ -1052,7 +1051,7 @@ function showSaveSuccess(cb) {
 function calcMonthlySummary(year, month, data) {
   let livingTotal = 0, fixedTotal = 0, husbandTotal = 0, wifeTotal = 0;
   const CAT_NORMALIZE = {'식비':'식비/주류','생활':'주거/생활','교통':'교통/차량','여가':'취미/여가','의료':'쇼핑/의료'};
-  const byCategory = {'식비/주류':0,'교통/차량':0,'주거/생활':0,'쇼핑/의료':0,'취미/여가':0,'여행/숙박':0,'고정비':0,'기타':0};
+  const byCategory = {'식비/주류':0,'교통/차량':0,'주거/생활':0,'쇼핑/의료':0,'취미/여가':0,'여행/숙박':0,'고정비':0};
   const dailyTotals = {};
 
   data.forEach(row => {
@@ -1068,7 +1067,7 @@ function calcMonthlySummary(year, month, data) {
 
     const normalCat = CAT_NORMALIZE[cat] || cat;
     if (byCategory[normalCat] !== undefined) byCategory[normalCat] += amount;
-    else byCategory['기타'] += amount;
+    else byCategory['주거/생활'] += amount;
 
     dailyTotals[row.date] = (dailyTotals[row.date] || 0) + amount;
   });
@@ -1608,12 +1607,11 @@ function catToMajor(cat) {
   if (['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박'].includes(cat)) return '생활비';
   if (['식비','교통','생활','의료','여가'].includes(cat)) return '생활비';
   if (cat === '고정비') return '고정비';
-  return '기타';
+  return '생활비';
 }
 function effectiveCategory() {
   if (!state.selectedMajorCat) return null;
   if (state.selectedMajorCat === '고정비') return '고정비';
-  if (state.selectedMajorCat === '기타') return '기타';
   const sub = document.getElementById('expense-subcat');
   return sub ? sub.value : '식비/주류';
 }
@@ -1656,12 +1654,10 @@ function updateCategoryForm() {
   const input = document.getElementById('expense-item'), sel = document.getElementById('expense-item-select');
   if (!subRow || !input || !sel) return;
   
-  if (major === '생활비') {
-    subRow.style.display = ''; subDiv.style.display = ''; input.style.display = ''; sel.style.display = 'none';
-  } else if (major === '고정비') {
+  if (major === '고정비') {
     subRow.style.display = 'none'; subDiv.style.display = 'none'; input.style.display = 'none'; sel.style.display = '';
   } else {
-    subRow.style.display = 'none'; subDiv.style.display = 'none'; input.style.display = ''; sel.style.display = 'none';
+    subRow.style.display = ''; subDiv.style.display = ''; input.style.display = ''; sel.style.display = 'none';
   }
   updateMajorCatSeg();
   updateTaxChips();
@@ -1735,7 +1731,7 @@ function resetForm() {
     state.selectedMajorCat = catToMajor(lastCat);
     if (state.selectedMajorCat === '생활비' && subEl) subEl.value = lastCat;
   } else {
-    state.selectedMajorCat = null;
+    state.selectedMajorCat = '생활비';
   }
   updateCategoryForm(); updateUserSeg(); updateDatePills(); updateItemSuggestions();
   document.getElementById('edit-banner').classList.remove('show');
@@ -2039,7 +2035,7 @@ window.testDbSync = async function() {
   const testData = {
     date: todayStr(),
     item: '[연동테스트] 자동삭제',
-    category: '기타',
+    category: '주거/생활',
     user: '희',
     amount: 1,
     memo: 'sync-test',
@@ -2101,6 +2097,39 @@ window.testDbSync = async function() {
   return { firebaseId: docRef?.id, gasResult };
 };
 
+// ====================================================
+// 레거시 '기타' 카테고리 일괄 마이그레이션 유틸
+//   await window.migrateLegacyKita()               ← '주거/생활' (기본)
+//   await window.migrateLegacyKita('쇼핑/의료')   ← 원하는 카테고리 지정
+// ====================================================
+window.migrateLegacyKita = async function(targetCat = '주거/생활') {
+  const valid = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박'];
+  if (!valid.includes(targetCat)) {
+    console.error('유효하지 않은 카테고리:', targetCat, '\n허용값:', valid.join(', '));
+    return;
+  }
+  console.group(`%c🔧 레거시 '기타' 마이그레이션 → '${targetCat}'`, 'font-weight:bold;color:#fa0');
+  try {
+    const { getDocs, collection, query, where, writeBatch, doc } = await import('https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js');
+    const q = query(collection(db, 'expenses'), where('category', '==', '기타'));
+    const snap = await getDocs(q);
+    if (snap.empty) { console.log('%c✅ 마이그레이션 대상 없음 — 모두 최신 상태', 'color:limegreen'); console.groupEnd(); return; }
+    console.log(`대상 ${snap.size}건 발견. '${targetCat}'(으)로 변경합니다...`);
+    const batches = [];
+    let batch = writeBatch(db), count = 0;
+    snap.forEach(d => {
+      batch.update(doc(db, 'expenses', d.id), { category: targetCat });
+      if (++count % 500 === 0) { batches.push(batch.commit()); batch = writeBatch(db); }
+    });
+    batches.push(batch.commit());
+    await Promise.all(batches);
+    console.log(`%c✅ ${snap.size}건 마이그레이션 완료`, 'color:limegreen');
+  } catch (e) {
+    console.error('❌ 마이그레이션 실패:', e.message);
+  }
+  console.groupEnd();
+};
+
 window.testDbSyncCleanup = async function(docId) {
   if (!docId) {
     console.error('docId를 입력하세요. 예) await window.testDbSyncCleanup("abc123xyz")');
@@ -2139,7 +2168,7 @@ document.addEventListener('DOMContentLoaded', () => {
           state.selectedMajorCat = catToMajor(lastCat);
           const sub = document.getElementById('expense-subcat');
           if (state.selectedMajorCat === '생활비' && sub) sub.value = lastCat;
-        } else state.selectedMajorCat = null;
+        } else state.selectedMajorCat = '생활비';
         updateCategoryForm();
       }
       updateItemSuggestions();
