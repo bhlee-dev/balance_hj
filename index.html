@@ -441,11 +441,12 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <div class="form-row" id="subcat-row" style="display:none">
             <span class="form-row-label">세부</span>
             <select class="form-card-input" id="expense-subcat">
-              <option value="식비">식비</option>
-              <option value="교통">교통</option>
-              <option value="생활">생활</option>
-              <option value="의료">의료</option>
-              <option value="여가">여가</option>
+              <option value="식비/주류">식비/주류</option>
+              <option value="교통/차량">교통/차량</option>
+              <option value="주거/생활">주거/생활</option>
+              <option value="쇼핑/의료">쇼핑/의료</option>
+              <option value="취미/여가">취미/여가</option>
+              <option value="여행/숙박">여행/숙박</option>
             </select>
           </div>
           <div class="form-row-divider"></div>
@@ -685,8 +686,13 @@ const auth = getAuth(app);
 const AUTH_EMAIL = "hj@ledger.com"; 
 
 // 전역 상수 및 상태 변수
-const CATEGORY_EMOJI = { '식비':'🍚', '교통':'🚇', '생활':'🏠', '의료':'💊', '여가':'🎬', '고정비':'🏢', '기타':'📦' };
-const CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
+const CATEGORY_EMOJI = {
+  '식비/주류':'🍽️', '교통/차량':'🚗', '주거/생활':'🏠',
+  '쇼핑/의료':'🛍️', '취미/여가':'⛰️', '여행/숙박':'✈️',
+  '고정비':'🏢', '기타':'📦',
+  '식비':'🍽️', '교통':'🚗', '생활':'🏠', '의료':'🛍️', '여가':'⛰️'
+};
+const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비','기타'];
 const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
@@ -913,7 +919,8 @@ function showSaveSuccess(cb) {
 // ====================================================
 function calcMonthlySummary(year, month, data) {
   let livingTotal = 0, fixedTotal = 0, husbandTotal = 0, wifeTotal = 0;
-  const byCategory = { '식비': 0, '교통': 0, '생활': 0, '의료': 0, '여가': 0, '고정비': 0, '기타': 0 };
+  const CAT_NORMALIZE = {'식비':'식비/주류','생활':'주거/생활','교통':'교통/차량','여가':'취미/여가','의료':'쇼핑/의료'};
+  const byCategory = {'식비/주류':0,'교통/차량':0,'주거/생활':0,'쇼핑/의료':0,'취미/여가':0,'여행/숙박':0,'고정비':0,'기타':0};
   const dailyTotals = {};
 
   data.forEach(row => {
@@ -927,7 +934,8 @@ function calcMonthlySummary(year, month, data) {
     if (user === '남편' || user === '희') husbandTotal += amount;
     else if (user === '아내' || user === '정') wifeTotal += amount;
 
-    if (byCategory[cat] !== undefined) byCategory[cat] += amount;
+    const normalCat = CAT_NORMALIZE[cat] || cat;
+    if (byCategory[normalCat] !== undefined) byCategory[normalCat] += amount;
     else byCategory['기타'] += amount;
 
     dailyTotals[row.date] = (dailyTotals[row.date] || 0) + amount;
@@ -1129,14 +1137,19 @@ function renderHomeSummary(s) {
 
 function renderHomeDashboard(curr, prev, ly, month) {
   const now = new Date(), todayDay = now.getDate();
-  const livCats = ['식비','교통','생활','의료','여가'];
+  const livCats = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박'];
+  const CAT_NORMALIZE_LIV = {'식비':'식비/주류','생활':'주거/생활','교통':'교통/차량','여가':'취미/여가','의료':'쇼핑/의료'};
 
   const currLiv = {}, prevLivMTD = {};
   livCats.forEach(c => { currLiv[c] = 0; prevLivMTD[c] = 0; });
-  (curr || []).forEach(e => { if (livCats.includes(e.category)) currLiv[e.category] += e.amount; });
+  (curr || []).forEach(e => {
+    const cat = CAT_NORMALIZE_LIV[e.category] || e.category;
+    if (livCats.includes(cat)) currLiv[cat] = (currLiv[cat] || 0) + e.amount;
+  });
   (prev || []).forEach(e => {
-    if (!livCats.includes(e.category)) return;
-    if (parseInt(e.date.slice(8,10), 10) <= todayDay) prevLivMTD[e.category] += e.amount;
+    const cat = CAT_NORMALIZE_LIV[e.category] || e.category;
+    if (!livCats.includes(cat)) return;
+    if (parseInt(e.date.slice(8,10), 10) <= todayDay) prevLivMTD[cat] = (prevLivMTD[cat] || 0) + e.amount;
   });
 
   const prevDataExists = (prev || []).length > 0;
@@ -1423,6 +1436,7 @@ function renderAnnualMatrix(months, fixedMonths) {
 // 기록 폼 UI 제어 로직 
 // ====================================================
 function catToMajor(cat) {
+  if (['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박'].includes(cat)) return '생활비';
   if (['식비','교통','생활','의료','여가'].includes(cat)) return '생활비';
   if (cat === '고정비') return '고정비';
   return '기타';
@@ -1432,7 +1446,7 @@ function effectiveCategory() {
   if (state.selectedMajorCat === '고정비') return '고정비';
   if (state.selectedMajorCat === '기타') return '기타';
   const sub = document.getElementById('expense-subcat');
-  return sub ? sub.value : '식비';
+  return sub ? sub.value : '식비/주류';
 }
 function getItemValue() {
   const sel = document.getElementById('expense-item-select');
@@ -1638,6 +1652,25 @@ function renderDatePicker() {
 // ====================================================
 // [ 핵심 4 ] Firebase Auth 보안 초기화 & 마이그레이션 유틸
 // ====================================================
+window.migrateCategories = async function() {
+  const MAP = {'식비':'식비/주류','생활':'주거/생활','교통':'교통/차량','여가':'취미/여가','의료':'쇼핑/의료'};
+  console.log('[migrateCategories] 시작...');
+  const snap = await getDocs(collection(db, 'expenses'));
+  const targets = snap.docs.filter(d => MAP[d.data().category]);
+  console.log(`[migrateCategories] 대상: ${targets.length}건`);
+  if (targets.length === 0) { console.log('[migrateCategories] 이미 완료됨.'); return; }
+  const CHUNK = 500;
+  let done = 0;
+  for (let i = 0; i < targets.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    targets.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, { category: MAP[d.data().category] }));
+    await batch.commit();
+    done += Math.min(CHUNK, targets.length - i);
+    console.log(`[migrateCategories] ${done}/${targets.length} 완료`);
+  }
+  console.log('[migrateCategories] 전체 완료!');
+};
+
 window.migrateData = async function(jsonData) {
   if (!Array.isArray(jsonData) || jsonData.length === 0) {
     console.error('마이그레이션할 올바른 JSON 배열을 넣어주세요.');

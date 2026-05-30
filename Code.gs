@@ -6,7 +6,7 @@
 const RAW_SHEET = 'RAW_DATA';
 const CACHE_DURATION_SEC = 30;
 const ALLOWED_USERS = ['희', '정', '남편', '아내']; // 구 데이터 호환 유지
-const ALLOWED_CATEGORIES = ['식비', '교통', '생활', '의료', '여가', '고정비', '기타'];
+const ALLOWED_CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비','기타'];
 
 // ====================================================
 // 최초 1회 설정 함수 — GAS 편집기에서 직접 실행
@@ -366,7 +366,7 @@ function getMonthlySummary(year, month) {
     let livingTotal = 0;
     let husbandTotal = 0;
     let wifeTotal = 0;
-    const byCategory = { '식비': 0, '교통': 0, '생활': 0, '의료': 0, '여가': 0, '고정비': 0, '기타': 0 };
+    const byCategory = {'식비/주류':0,'교통/차량':0,'주거/생활':0,'쇼핑/의료':0,'취미/여가':0,'여행/숙박':0,'고정비':0,'기타':0};
     const dailyTotals = {};
     let rawFixedTotal = 0;
 
