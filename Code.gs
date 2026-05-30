@@ -119,6 +119,7 @@ function doPost(e) {
     if (action === 'addExpense')    return jsonResponse(addExpense(payload.data));
     if (action === 'updateExpense') return jsonResponse(updateExpense(payload.rowIndex, payload.data));
     if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.rowIndex));
+    if (action === 'syncMonth')     return jsonResponse(syncMonth(+payload.year, +payload.month, payload.data || []));
     return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
   } catch(err) {
     return jsonResponse({ success: false, error: err.message });
@@ -163,6 +164,52 @@ function addExpense(data) {
 
     return { success: true };
   } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 월 단위 Firebase → 시트 전체 덮어쓰기 동기화
+ * @param {number} year
+ * @param {number} month
+ * @param {Array}  rows  Firebase 문서 배열
+ */
+function syncMonth(year, month, rows) {
+  try {
+    const sheet = getSheet(RAW_SHEET);
+    const prefix = String(year) + '-' + String(month).padStart(2, '0') + '-';
+
+    // 해당 월 기존 행 위치 수집 (아래에서 위로 삭제해야 행 번호 밀림 없음)
+    const allValues = sheet.getDataRange().getValues();
+    const toDelete = [];
+    for (var i = allValues.length - 1; i >= 1; i--) {
+      if (String(allValues[i][0]).startsWith(prefix)) toDelete.push(i + 1);
+    }
+    for (var d = 0; d < toDelete.length; d++) {
+      sheet.deleteRow(toDelete[d]);
+    }
+
+    // Firebase 데이터 삽입
+    if (rows.length > 0) {
+      var sanitized = rows.map(function(r) {
+        return [
+          sanitizeString(r.date || '', 10),
+          sanitizeString(r.item || '', 50),
+          sanitizeString(r.category || '', 20),
+          sanitizeString(r.user || '', 10),
+          parseAmount(r.amount),
+          sanitizeString(r.memo || '', 200),
+          sanitizeString(r.createdAt || '', 30)
+        ];
+      });
+      sheet.getRange(sheet.getLastRow() + 1, 1, sanitized.length, 7).setValues(sanitized);
+    }
+
+    invalidateCache(year, month);
+    Logger.log('syncMonth 완료: ' + year + '-' + month + ' | 삭제 ' + toDelete.length + '행, 삽입 ' + rows.length + '행');
+    return { success: true, deleted: toDelete.length, inserted: rows.length };
+  } catch (e) {
+    Logger.log('syncMonth 오류: ' + e.message);
     return { success: false, error: e.message };
   }
 }

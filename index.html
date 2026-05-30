@@ -262,6 +262,10 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .action-sheet-btn:active{background:var(--surface-2)}
 .action-sheet-btn.danger{color:var(--danger)}
 .action-sheet-cancel{color:var(--text-muted);margin-bottom:0}
+#monthly-sync-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
+#monthly-sync-btn:disabled{opacity:.4;cursor:default}
+#monthly-sync-btn.syncing svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 #monthly-filter-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
 #monthly-filter-btn.active{color:#F5F5F7}
 #filter-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
@@ -545,9 +549,14 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
       <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
         <span>일별 지출</span>
-        <button id="monthly-filter-btn" type="button" aria-label="필터/정렬">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-        </button>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button id="monthly-sync-btn" type="button" aria-label="구글 시트 동기화">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          </button>
+          <button id="monthly-filter-btn" type="button" aria-label="필터/정렬">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          </button>
+        </div>
       </div>
       <div id="monthly-expense-list"></div>
     </div>
@@ -852,6 +861,48 @@ function syncToGoogleSheet(expenseData) {
   .catch(err => {
     console.error('[GAS Sync] 구글 시트 백업 중 네트워크 오류:', err);
   });
+}
+
+async function syncCurrentMonthToSheet() {
+  const year = state.monthlyYear;
+  const month = state.monthlyMonth;
+  const btn = document.getElementById('monthly-sync-btn');
+
+  let data = _monthlyAllData;
+  if (!data) {
+    try { data = await fetchExpenses(year, month); }
+    catch (e) { showToast('데이터 로드 실패: ' + e.message); return; }
+  }
+
+  const pin = localStorage.getItem('app_pin_raw') || '';
+  if (!pin) { showToast('로그인 후 사용 가능합니다.'); return; }
+
+  if (btn) { btn.classList.add('syncing'); btn.disabled = true; }
+
+  const rows = data.map(e => ({
+    date: e.date, item: e.item, category: e.category,
+    user: e.user, amount: e.amount,
+    memo: e.memo || '', createdAt: e.createdAt || ''
+  }));
+
+  try {
+    const res = await fetch(GAS_BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'syncMonth', pin, year, month, data: rows }),
+      redirect: 'follow'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(`${year}년 ${month}월 시트 동기화 완료 (${result.inserted}건)`);
+    } else {
+      showToast('동기화 실패: ' + (result.error || '알 수 없는 오류'));
+    }
+  } catch (e) {
+    showToast('네트워크 오류: ' + e.message);
+  } finally {
+    if (btn) { btn.classList.remove('syncing'); btn.disabled = false; }
+  }
 }
 
 // ====================================================
@@ -2033,6 +2084,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('confirm-cancel-btn').addEventListener('click', () => document.getElementById('confirm-overlay').classList.remove('show'));
   document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+
+  // 시트 동기화 버튼
+  document.getElementById('monthly-sync-btn').addEventListener('click', () => {
+    const year = state.monthlyYear;
+    const month = state.monthlyMonth;
+    if (!confirm(`${year}년 ${month}월 데이터를 Google Sheets에 동기화할까요?\n기존 해당 월 시트 데이터는 Firebase 데이터로 덮어씌워집니다.`)) return;
+    syncCurrentMonthToSheet();
+  });
 
   // 필터/정렬 바텀시트
   document.getElementById('monthly-filter-btn').addEventListener('click', () => {
