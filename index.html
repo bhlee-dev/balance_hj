@@ -1795,6 +1795,94 @@ window.migrateData = async function(jsonData) {
   console.log('🎉 데이터 마이그레이션이 완벽하게 끝났습니다! 화면을 새로고침 해주세요.');
 };
 
+// ====================================================
+// 🔧 동기화 테스트 유틸 (콘솔에서 호출)
+//    await window.testDbSync()
+//    await window.testDbSyncCleanup("firestore-doc-id")
+// ====================================================
+window.testDbSync = async function() {
+  // GAS addExpense 는 amount < 1 을 거부하므로 1원 사용
+  // GAS ALLOWED_USERS 에 '희'/'정'만 허용 → '희' 사용
+  const testData = {
+    date: todayStr(),
+    item: '[연동테스트] 자동삭제',
+    category: '기타',
+    user: '희',
+    amount: 1,
+    memo: 'sync-test',
+    createdAt: new Date().toISOString()
+  };
+
+  console.group('%c🔧 DB 동기화 테스트 시작', 'font-weight:bold;color:#0af');
+  console.log('테스트 데이터:', testData);
+
+  // ① Firebase 저장
+  let docRef = null;
+  console.log('\n① Firebase(Firestore) 저장 시도 중...');
+  try {
+    docRef = await addDoc(collection(db, 'expenses'), testData);
+    console.log('%c✅ Firebase 저장 성공', 'color:limegreen', '| doc ID:', docRef.id);
+  } catch (e) {
+    console.error('❌ Firebase 저장 실패', '| code:', e.code, '| message:', e.message);
+    console.groupEnd();
+    return { success: false, step: 'firebase', error: e };
+  }
+
+  // ② GAS 전송
+  console.log('\n② Google Sheets(GAS) 전송 시도 중...');
+  const pin = document.getElementById('pin-input')?.value.trim()
+            || localStorage.getItem('app_pin_raw') || '';
+  if (!pin) console.warn('⚠️  PIN 없음 — GAS 인증 실패 가능성 있음');
+
+  const payload = { action: 'addExpense', pin, data: testData };
+  let gasResult = null;
+  try {
+    const res = await fetch(GAS_BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    console.log('   HTTP 상태:', res.status, res.statusText);
+    gasResult = await res.json();
+    if (gasResult.success) {
+      console.log('%c✅ GAS 전송 성공', 'color:limegreen', gasResult);
+    } else {
+      console.error('❌ GAS 응답 오류:', gasResult.error || gasResult);
+    }
+  } catch (e) {
+    console.error('❌ GAS 네트워크 오류:', e.message);
+    gasResult = { success: false, error: e.message };
+  }
+
+  // 요약
+  console.log('\n📋 결과 요약');
+  console.log('  Firebase :', docRef ? `✅ 성공  (ID: ${docRef.id})` : '❌ 실패');
+  console.log('  GAS      :', gasResult?.success ? '✅ 성공' : '❌ 실패 — ' + (gasResult?.error || '?'));
+  if (docRef) {
+    console.log('\n🧹 테스트 데이터 삭제(Firebase):');
+    console.log(`   await window.testDbSyncCleanup("${docRef.id}")`);
+  }
+  console.groupEnd();
+
+  return { firebaseId: docRef?.id, gasResult };
+};
+
+window.testDbSyncCleanup = async function(docId) {
+  if (!docId) {
+    console.error('docId를 입력하세요. 예) await window.testDbSyncCleanup("abc123xyz")');
+    return;
+  }
+  try {
+    await deleteDoc(doc(db, 'expenses', docId));
+    const today = todayStr();
+    invalidateCached(parseInt(today.slice(0, 4), 10), parseInt(today.slice(5, 7), 10));
+    console.log('%c✅ Firebase 테스트 데이터 삭제 완료', 'color:limegreen', '(ID:', docId + ')');
+  } catch (e) {
+    console.error('❌ 삭제 실패:', e.message);
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', () => {
     const t = document.getElementById('svg-tooltip');
