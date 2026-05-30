@@ -266,8 +266,10 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #monthly-sync-btn:disabled{opacity:.4;cursor:default}
 #monthly-sync-btn.syncing svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#monthly-filter-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
+#monthly-filter-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s;position:relative}
 #monthly-filter-btn.active{color:#F5F5F7}
+#monthly-filter-btn.active::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#F5F5F7}
+.ei-item-date{font-size:11px;color:#6B7280;margin-top:2px;font-variant-numeric:tabular-nums}
 #filter-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
 #filter-sheet-overlay.show{display:flex}
 #filter-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:80vh;overflow-y:auto}
@@ -1365,42 +1367,57 @@ function renderMonthlyExpenses(data, sort = 'date_desc') {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">🗒️</div><div class="empty-text">이번 달 지출 내역이 없어요</div><button class="empty-btn" onclick="window.showTab(\'record\')">첫 지출 기록하기</button></div>';
     return;
   }
+
+  function buildItem(item, idx, showDate) {
+    const pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : (item.user==='희정') ? 'pill-common' : 'pill-wife';
+    const d = item.date ? item.date.slice(5).replace('-', '/') : '';
+    const subLine = [
+      showDate ? `<span class="ei-item-date">${d}</span>` : '',
+      item.memo ? `<span class="expense-memo">${escHtml(item.memo)}</span>` : ''
+    ].filter(Boolean).join('<span style="margin:0 4px;color:#4B5563">·</span>');
+    return `<div class="expense-list-item slide-in" style="animation-delay:${idx * 20}ms">
+      <div class="ei-left">
+        <div class="ei-top">
+          <div class="expense-icon" style="width:36px;height:36px;font-size:16px">${CATEGORY_EMOJI[item.category]||'📦'}</div>
+          <div class="expense-name">${escHtml(item.item)}</div>
+        </div>
+        ${subLine ? `<div class="expense-date">${subLine}</div>` : ''}
+      </div>
+      <div class="ei-right">
+        <div class="ei-amount-row">
+          <div class="expense-amount">${formatMoney(item.amount)}</div>
+          <button class="more-btn" data-row="${item.rowIndex}" data-name="${escHtml(item.item)}" onclick="window.openActionSheet(this)" type="button">···</button>
+        </div>
+        <span class="user-pill ${pillCls}">${escHtml(item.user)}</span>
+      </div>
+    </div>`;
+  }
+
+  // 고액순/저액순 → Flat list (날짜 그룹 없음, 각 항목에 날짜 표시)
+  if (sort === 'amt_desc' || sort === 'amt_asc') {
+    const sorted = [...data].sort((a, b) =>
+      sort === 'amt_desc' ? b.amount - a.amount : a.amount - b.amount
+    );
+    list.innerHTML = sorted.map((item, i) => buildItem(item, i, true)).join('');
+    return;
+  }
+
+  // 최신순/과거순 → 날짜 그룹
   const groups = {};
   data.forEach(item => {
     if (!groups[item.date]) groups[item.date] = [];
     groups[item.date].push(item);
   });
-
   const sortedDates = Object.keys(groups).sort((a, b) =>
     sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a)
   );
-
-  list.innerHTML = sortedDates.map((date, di) => {
-    const sortedItems = [...groups[date]].sort((a, b) => {
-      if (sort === 'amt_desc') return b.amount - a.amount;
-      if (sort === 'amt_asc')  return a.amount - b.amount;
-      return (b.createdAt || '').localeCompare(a.createdAt || '');
-    });
-    const dayTotal = sortedItems.reduce((s,i) => s + i.amount, 0);
-    const items = sortedItems.map((item, ii) => {
-      const pillCls = (item.user==='남편'||item.user==='희') ? 'pill-husband' : (item.user==='희정') ? 'pill-common' : 'pill-wife';
-      return `<div class="expense-list-item slide-in" style="animation-delay:${(di*2+ii)*20}ms">
-        <div class="ei-left">
-          <div class="ei-top">
-            <div class="expense-icon" style="width:36px;height:36px;font-size:16px">${CATEGORY_EMOJI[item.category]||'📦'}</div>
-            <div class="expense-name">${escHtml(item.item)}</div>
-          </div>
-          ${item.memo ? `<div class="expense-date"><span class="expense-memo">${escHtml(item.memo)}</span></div>` : ''}
-        </div>
-        <div class="ei-right">
-          <div class="ei-amount-row">
-            <div class="expense-amount">${formatMoney(item.amount)}</div>
-            <button class="more-btn" data-row="${item.rowIndex}" data-name="${escHtml(item.item)}" onclick="window.openActionSheet(this)" type="button">···</button>
-          </div>
-          <span class="user-pill ${pillCls}">${escHtml(item.user)}</span>
-        </div>
-      </div>`;
-    }).join('');
+  let globalIdx = 0;
+  list.innerHTML = sortedDates.map(date => {
+    const sortedItems = [...groups[date]].sort((a, b) =>
+      (b.createdAt || '').localeCompare(a.createdAt || '')
+    );
+    const dayTotal = sortedItems.reduce((s, i) => s + i.amount, 0);
+    const items = sortedItems.map(item => buildItem(item, globalIdx++, false)).join('');
     return `<div class="date-group"><div class="date-group-header"><span>${formatDate(date)}</span><span class="date-group-total">${formatMoney(dayTotal)}</span></div>${items}</div>`;
   }).join('');
 }
