@@ -810,7 +810,7 @@ const app = initializeApp(firebaseConfig);
 // Step 1: https://www.google.com/recaptcha/admin/create 에서 v3 사이트 키 발급
 // Step 2: Firebase Console → App Check → 웹앱 등록 → reCAPTCHA v3 사이트 키 입력
 // Step 3: Firebase Console → App Check → API 탭 → Firestore → 적용(Enforce)
-const RECAPTCHA_SITE_KEY = 'YOUR_RECAPTCHA_V3_SITE_KEY'; // ← 발급받은 키로 교체
+const RECAPTCHA_SITE_KEY = '6Lef-AQtAAAAHL2vOpm3as6HRQG25WTe8T-EDw8';
 initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
   isTokenAutoRefreshEnabled: true
