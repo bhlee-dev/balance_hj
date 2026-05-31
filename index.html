@@ -765,7 +765,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-check.js";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-check.js";
 import { 
   getFirestore, 
   initializeFirestore, 
@@ -812,7 +812,7 @@ const app = initializeApp(firebaseConfig);
 // Step 3: Firebase Console → App Check → API 탭 → Firestore → 적용(Enforce)
 const RECAPTCHA_SITE_KEY = '6Lef-AQtAAAAHL2vOpm3as6HRQG25WTe8T-EDw8';
 initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+  provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
   isTokenAutoRefreshEnabled: true
 });
 
