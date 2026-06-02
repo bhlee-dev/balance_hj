@@ -99,7 +99,17 @@ body{display:flex;flex-direction:column;align-items:stretch}
 /* ════════════════════════════════════════════════ HEADER ═══ */
 #app-header{height:54px;background:rgba(17,17,18,0.82);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:100;flex-shrink:0}
 #app-header.with-offline{top:40px}
-#header-title-wrap{display:flex;align-items:baseline;gap:6px}
+#header-title-wrap{display:flex;align-items:center;gap:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;border-radius:8px;padding:4px 6px;margin:-4px -6px}
+#header-title-wrap:active{opacity:.55}
+#app-switcher-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:flex-end;justify-content:center}
+#app-switcher-overlay.show{display:flex}
+#app-switcher-sheet{background:#1c1c1e;border-radius:20px 20px 0 0;padding:0 0 calc(16px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px}
+.app-switcher-title{font-size:var(--text-micro);font-weight:var(--fw-medium);color:#8e8e93;text-align:center;padding:16px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.1);letter-spacing:.06em;text-transform:uppercase}
+.app-switcher-item{width:100%;min-height:60px;border:none;border-bottom:1px solid rgba(255,255,255,0.08);background:transparent;color:var(--text);font-size:17px;font-weight:var(--fw-regular);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:14px;padding:0 20px;-webkit-tap-highlight-color:transparent;transition:background .15s;letter-spacing:-.01em;text-align:left}
+.app-switcher-item:active{background:rgba(255,255,255,0.08)}
+.app-switcher-item.current{color:var(--text-muted);cursor:default}
+.app-switcher-item-label{flex:1}
+.app-switcher-item-label small{display:block;font-size:var(--text-micro);color:var(--text-muted);margin-top:2px;font-weight:var(--fw-regular)}
 #header-title{font-size:var(--text-h2);font-weight:var(--fw-semibold);color:var(--text);letter-spacing:var(--ls-normal)}
 #header-version{font-size:var(--text-micro);font-weight:var(--fw-medium);color:var(--text-muted);letter-spacing:.02em}
 #header-month{font-size:var(--text-caption);font-weight:var(--fw-regular);color:var(--text-muted);font-variant-numeric:tabular-nums}
@@ -418,6 +428,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
     <div id="header-title-wrap">
       <span id="header-title">가계부</span>
       <span id="header-version">v8</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);margin-left:1px;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <span id="header-month" class="num"></span>
   </header>
@@ -642,6 +653,28 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <span>기록</span>
     </button>
   </nav>
+
+  <!-- ── APP SWITCHER SHEET ── -->
+  <div id="app-switcher-overlay">
+    <div id="app-switcher-sheet">
+      <div class="app-switcher-title">앱 전환</div>
+      <button class="app-switcher-item current" id="as-current-btn">
+        <span style="font-size:22px">📔</span>
+        <span class="app-switcher-item-label">
+          가계부
+          <small>현재 앱</small>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#0a84ff"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <button class="app-switcher-item" id="as-snowball-btn">
+        <span style="font-size:22px">📈</span>
+        <span class="app-switcher-item-label">
+          우상향
+          <small>snowball-hj.web.app</small>
+        </span>
+      </button>
+    </div>
+  </div>
 
   <div id="action-sheet-overlay">
     <div id="action-sheet">
@@ -2425,6 +2458,22 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => document.getElementById('pin-input').focus(), 100);
     }
   });
+});
+
+// ════════════════════════════════════════════
+// 앱 스위처
+// ════════════════════════════════════════════
+document.getElementById('header-title-wrap').addEventListener('click', () => {
+  document.getElementById('app-switcher-overlay').classList.add('show');
+});
+document.getElementById('app-switcher-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+document.getElementById('as-current-btn').addEventListener('click', () => {
+  document.getElementById('app-switcher-overlay').classList.remove('show');
+});
+document.getElementById('as-snowball-btn').addEventListener('click', () => {
+  window.location.href = 'https://snowball-hj.web.app/';
 });
 </script>
 </body>
