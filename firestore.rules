@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 희(hj@ledger.com) 와 정(jeong@ledger.com) 두 계정만 접근 허용
+    function isAuthorized() {
+      return request.auth != null &&
+        request.auth.uid in [
+          'MWztSqtgm5WXj1neuqDOVGZtNYI2',
+          'q3315ph5KuR0TEETwau41fIFX263'
+        ];
+    }
+
+    match /expenses/{docId} {
+      allow read, write: if isAuthorized();
+    }
+  }
+}
