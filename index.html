@@ -859,8 +859,13 @@ const db = initializeFirestore(app, {
 });
 const auth = getAuth(app);
 
-// ── Firebase Auth용 가짜 이메일 (Firebase 콘솔에 똑같이 가입시켜 두어야 합니다) ──
-const AUTH_EMAIL = "hj@ledger.com"; 
+// ── 사용자별 Firebase Auth 계정 매핑 (이메일은 식별자, PIN은 코드에 없음) ──
+const AUTH_USERS = [
+  { email: 'hj@ledger.com',    defaultUser: '희' },
+  { email: 'jeong@ledger.com', defaultUser: '정' }
+];
+// GAS 백업용 고정 토큰 (사용자 PIN과 분리)
+const GAS_SYNC_PIN = '0300';
 
 // 전역 상수 및 상태 변수
 const CATEGORY_EMOJI = {
@@ -962,7 +967,7 @@ async function fetchExpenses(year, month) {
 // [ 핵심 2 ] 듀얼 라이트(Dual-Write) 백그라운드 싱크
 // ====================================================
 function syncToGoogleSheet(expenseData) {
-  const pin = document.getElementById('pin-input').value.trim() || localStorage.getItem('app_pin_raw') || ''; // 원래 PIN 번호
+  const pin = GAS_SYNC_PIN;
   const payload = { action: 'addExpense', pin: pin, data: expenseData };
   
   fetch(GAS_BACKEND_URL, {
@@ -2497,29 +2502,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btn = document.getElementById('pin-submit');
     const errEl = document.getElementById('pin-error');
-    btn.disabled = true; 
+    btn.disabled = true;
     btn.textContent = '확인 중...';
     errEl.style.display = 'none';
 
     // Firebase 비밀번호 최소 6자리 조건을 맞추기 위해 "00"을 덧붙임
-    const password = pin + "00";
+    const password = pin + '00';
 
     try {
-      // 로컬 스토리지에 로그인 상태 영구 유지
       await setPersistence(auth, browserLocalPersistence);
-      // 백그라운드 이메일/비밀번호 로그인 시도
-      await signInWithEmailAndPassword(auth, AUTH_EMAIL, password);
-      
-      // 로그인이 성공하면 아래 onAuthStateChanged가 트리거되어 자동으로 startApp() 실행됨
-      localStorage.setItem('app_pin_raw', pin); // 백그라운드 구글 시트 연동을 위해 원래 핀 번호 저장
+      let matched = null;
+      for (const u of AUTH_USERS) {
+        try {
+          await signInWithEmailAndPassword(auth, u.email, password);
+          matched = u;
+          break;
+        } catch (err) {
+          // 잘못된 비밀번호/계정 없음만 다음으로 넘기고, 네트워크 오류 등은 즉시 throw
+          const code = err?.code || '';
+          if (code !== 'auth/wrong-password' && code !== 'auth/invalid-credential' && code !== 'auth/user-not-found') throw err;
+        }
+      }
+      if (!matched) throw new Error('auth/wrong-pin');
+      // onAuthStateChanged가 트리거되어 defaultUser 설정 후 startApp() 실행됨
       document.getElementById('pin-input').value = '';
-      btn.disabled = false; 
+      btn.disabled = false;
       btn.textContent = '확인';
     } catch (e) {
       console.error('인증 실패:', e);
       errEl.textContent = 'PIN이 올바르지 않습니다.';
       errEl.style.display = 'block';
-      btn.disabled = false; 
+      btn.disabled = false;
       btn.textContent = '확인';
     }
   }
@@ -2532,10 +2545,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // 앱 로드 시 로그인 상태 확인
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // 이미 인증된 토큰이 있으면 PIN 화면 패스
+      // 로그인 계정으로 기록 탭 기본 사용자 설정
+      const match = AUTH_USERS.find(u => u.email === user.email);
+      if (match) {
+        state.selectedUser = match.defaultUser;
+        localStorage.setItem('lastUser', match.defaultUser);
+      }
       startApp();
     } else {
-      // 로그아웃 상태면 PIN 화면 띄우기
       document.getElementById('pin-overlay').classList.add('show');
       setTimeout(() => document.getElementById('pin-input').focus(), 100);
     }
