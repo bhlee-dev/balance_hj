@@ -870,7 +870,7 @@ const CATEGORY_EMOJI = {
   '식비':'🍽️', '교통':'🚗', '생활':'🏠', '의료':'🛍️', '여가':'⛰️'
 };
 const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비'];
-const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '세금'];
+const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '전기요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
 
@@ -1164,8 +1164,9 @@ function calcYearlySummary(year, data) {
 }
 
 function calcYearlyFixedBreakdown(year, data) {
+  const emptyRow = () => Object.fromEntries(FIXED_BREAKDOWN_ITEMS.map(n => [n, 0]));
   const result = {};
-  for (let m = 1; m <= 12; m++) result[m] = { month: m, 관리비: 0, 도시가스: 0, 수도요금: 0, 세금: 0 };
+  for (let m = 1; m <= 12; m++) result[m] = { month: m, ...emptyRow() };
 
   data.forEach(row => {
     if (row.category !== '고정비') return;
@@ -1176,7 +1177,12 @@ function calcYearlyFixedBreakdown(year, data) {
       if (row.item && row.item.includes(name)) result[m][name] += amount;
     });
   });
-  return { success: true, months: Object.values(result) };
+
+  const totals = Object.fromEntries(FIXED_BREAKDOWN_ITEMS.map(n => [n, 0]));
+  Object.values(result).forEach(m => FIXED_BREAKDOWN_ITEMS.forEach(n => totals[n] += m[n]));
+  const activeItems = FIXED_BREAKDOWN_ITEMS.filter(n => totals[n] > 0);
+
+  return { success: true, months: Object.values(result), activeItems };
 }
 
 function getAvailableYears() {
@@ -1549,7 +1555,7 @@ function renderAnnualSummary(s, fixedBreakdown) {
   document.getElementById('y-living').textContent = formatMoney(s.yearLiving);
   document.getElementById('y-fixed').textContent = formatMoney(s.yearFixed);
   renderAnnualChart(s.months);
-  renderAnnualMatrix(s.months, fixedBreakdown ? fixedBreakdown.months : null);
+  renderAnnualMatrix(s.months, fixedBreakdown || null);
 }
 
 function roundedTop(x, y, w, h, r) {
@@ -1616,15 +1622,16 @@ function positionTooltip(tooltip, rect) {
   _tooltipTimeout = setTimeout(() => tooltip.style.display='none', 5000);
 }
 
-function renderAnnualMatrix(months, fixedMonths) {
+function renderAnnualMatrix(months, fixedBreakdown) {
   const head = document.getElementById('annual-matrix-head'), tbody = document.getElementById('annual-matrix-body');
   if (!head || !tbody || !months) return;
 
   state._annualMonths = months;
-  state._annualFixedMonths = fixedMonths;
+  state._annualFixedMonths = fixedBreakdown;
 
   document.querySelectorAll('#annual-view-seg .seg-btn').forEach(b => b.className = 'seg-btn' + (b.dataset.view === state.annualView ? ' active' : ''));
 
+  const fixedMonths = fixedBreakdown ? fixedBreakdown.months : null;
   const fixedMap = {};
   (fixedMonths || []).forEach(m => fixedMap[m.month] = m);
 
@@ -1635,21 +1642,22 @@ function renderAnnualMatrix(months, fixedMonths) {
 
   let html, footHtml;
   if (state.annualView === 'detail') {
-    head.innerHTML = '<th>월</th>' + FIXED_BREAKDOWN_ITEMS.map(n => `<th>${n}</th>`).join('');
+    const activeItems = (fixedBreakdown && fixedBreakdown.activeItems) || FIXED_BREAKDOWN_ITEMS;
+    head.innerHTML = '<th>월</th>' + activeItems.map(n => `<th>${n}</th>`).join('');
     const totFixed = {};
-    FIXED_BREAKDOWN_ITEMS.forEach(n => totFixed[n] = 0);
+    activeItems.forEach(n => totFixed[n] = 0);
 
     html = months.map(m => {
       const fd = fixedMap[m.month] || {};
-      FIXED_BREAKDOWN_ITEMS.forEach(n => totFixed[n] += (fd[n] || 0));
-      return `<tr><td>${m.month}월</td>${FIXED_BREAKDOWN_ITEMS.map(n => {
+      activeItems.forEach(n => totFixed[n] += (fd[n] || 0));
+      return `<tr><td>${m.month}월</td>${activeItems.map(n => {
         const v = fd[n] || 0;
         if (n === '세금' && v > 0) return `<td class="tax-cell" data-month="${m.month}">${formatNum(v)}</td>`;
         return zeroTd(v);
       }).join('')}</tr>`;
     }).join('');
 
-    footHtml = `<tr class="matrix-footer"><td>합계</td>${FIXED_BREAKDOWN_ITEMS.map(n => `<td>${totFixed[n] > 0 ? formatNum(totFixed[n]) : '–'}</td>`).join('')}</tr>`;
+    footHtml = `<tr class="matrix-footer"><td>합계</td>${activeItems.map(n => `<td>${totFixed[n] > 0 ? formatNum(totFixed[n]) : '–'}</td>`).join('')}</tr>`;
   } else {
     head.innerHTML = '<th>월</th><th>생활비</th><th>고정비</th><th class="col-total">합계</th>';
     let totL = 0, totF = 0, totA = 0;
