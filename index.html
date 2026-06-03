@@ -284,7 +284,6 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #monthly-search-wrap.show{display:flex}
 #monthly-search-input{background:transparent;border:none;outline:none;color:var(--text);font-size:var(--text-body);font-family:inherit;flex:1;min-width:0;caret-color:var(--accent)}
 #monthly-search-input::placeholder{color:var(--text-muted)}
-#monthly-search-input::-webkit-search-cancel-button{display:none}
 #monthly-search-close{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;flex-shrink:0}
 .ei-item-date{font-size:11px;color:#6B7280;margin-top:2px;font-variant-numeric:tabular-nums}
 #filter-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
@@ -609,7 +608,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         </div>
         <div id="monthly-search-wrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="monthly-search-input" type="search" placeholder="항목명·메모 검색" autocomplete="off" autocorrect="off" autocapitalize="off">
+          <input id="monthly-search-input" type="text" placeholder="항목명·메모 검색" autocomplete="off" autocorrect="off" autocapitalize="off">
           <button id="monthly-search-close" type="button" aria-label="검색 닫기">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -2409,10 +2408,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('monthly-search-wrap').classList.add('show');
     document.getElementById('monthly-search-input').focus();
   });
-  document.getElementById('monthly-search-input').addEventListener('input', function() {
+  let _searchComposing = false;
+  const _searchInput = document.getElementById('monthly-search-input');
+  _searchInput.addEventListener('compositionstart', () => { _searchComposing = true; });
+  _searchInput.addEventListener('compositionend', function() {
+    _searchComposing = false;
     _mSearch = this.value.trim();
     if (_mSearch) runGlobalSearch(_mSearch);
-    else closeMonthlySearch();
+  });
+  _searchInput.addEventListener('input', function() {
+    if (_searchComposing) return;
+    _mSearch = this.value.trim();
+    if (_mSearch) runGlobalSearch(_mSearch);
   });
   document.getElementById('monthly-search-close').addEventListener('click', closeMonthlySearch);
 
