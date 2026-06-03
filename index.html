@@ -278,6 +278,14 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #monthly-filter-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s;position:relative}
 #monthly-filter-btn.active{color:#F5F5F7}
 #monthly-filter-btn.active::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#F5F5F7}
+#monthly-search-btn{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .2s}
+#monthly-search-btn:active{color:#D1D5DB}
+#monthly-search-wrap{display:none;flex:1;align-items:center;gap:8px;color:#6B7280;min-width:0}
+#monthly-search-wrap.show{display:flex}
+#monthly-search-input{background:transparent;border:none;outline:none;color:var(--text);font-size:var(--text-body);font-family:inherit;flex:1;min-width:0;caret-color:var(--accent)}
+#monthly-search-input::placeholder{color:var(--text-muted)}
+#monthly-search-input::-webkit-search-cancel-button{display:none}
+#monthly-search-close{background:none;border:none;color:#6B7280;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;flex-shrink:0}
 .ei-item-date{font-size:11px;color:#6B7280;margin-top:2px;font-variant-numeric:tabular-nums}
 #filter-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
 #filter-sheet-overlay.show{display:flex}
@@ -590,10 +598,20 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <div class="fixed-breakdown-list" id="monthly-fixed-breakdown"></div>
 
       <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
-        <span>일별 지출</span>
+        <span id="monthly-list-title">일별 지출</span>
         <div style="display:flex;gap:4px;align-items:center">
+          <button id="monthly-search-btn" type="button" aria-label="검색">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
           <button id="monthly-filter-btn" type="button" aria-label="필터/정렬">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="monthly-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="monthly-search-input" type="search" placeholder="항목명·메모 검색" autocomplete="off" autocorrect="off" autocapitalize="off">
+          <button id="monthly-search-close" type="button" aria-label="검색 닫기">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>
@@ -860,6 +878,8 @@ const CLIENT_CACHE_MS = 30000;
 let _monthlyAllData = null;
 let _mFilter = { sort: 'date_desc', cat: '', user: '' };
 let _mFilterPending = { sort: 'date_desc', cat: '', user: '' };
+let _mSearch = '';
+let _allExpensesCache = null;
 
 const state = {
   currentTab: 'home',
@@ -1003,6 +1023,7 @@ async function onSaveExpense() {
       addDoc(collection(db, 'expenses'), data);
       syncToGoogleSheet(data);
     }
+    _allExpensesCache = null;
 
     const year = parseInt(dateVal.slice(0, 4), 10), month = parseInt(dateVal.slice(5, 7), 10);
     invalidateCached(year, month);
@@ -1034,6 +1055,7 @@ async function onSaveExpense() {
 async function doDeleteExpense(rowIndex, name) {
   try {
     deleteDoc(doc(db, 'expenses', String(rowIndex)));
+    _allExpensesCache = null;
 
     invalidateCached(state.monthlyYear, state.monthlyMonth);
     invalidateCached(state.currentYear, state.currentMonth);
@@ -1444,12 +1466,14 @@ function renderMonthlyExpenses(data, sort = 'date_desc') {
     </div>`;
   }
 
-  // 고액순/저액순 → Flat list (날짜 그룹 없음, 각 항목에 날짜 표시)
-  if (sort === 'amt_desc' || sort === 'amt_asc') {
-    const sorted = [...data].sort((a, b) =>
-      sort === 'amt_desc' ? b.amount - a.amount : a.amount - b.amount
-    );
-    list.innerHTML = sorted.map((item, i) => buildItem(item, i, true)).join('');
+  // 고액순/저액순/검색 → Flat list (날짜 그룹 없음, 각 항목에 날짜 표시)
+  if (sort === 'amt_desc' || sort === 'amt_asc' || sort === 'search') {
+    const sorted = sort === 'search'
+      ? data
+      : [...data].sort((a, b) => sort === 'amt_desc' ? b.amount - a.amount : a.amount - b.amount);
+    list.innerHTML = sorted.length
+      ? sorted.map((item, i) => buildItem(item, i, true)).join('')
+      : '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">검색 결과가 없어요</div></div>';
     return;
   }
 
@@ -1475,6 +1499,7 @@ function renderMonthlyExpenses(data, sort = 'date_desc') {
 
 function applyMonthlyFilter() {
   if (!_monthlyAllData) return;
+  if (_mSearch) { runGlobalSearch(_mSearch); return; }
   let data = [..._monthlyAllData];
   if (_mFilter.cat) data = data.filter(e => e.category === _mFilter.cat);
   if (_mFilter.user) data = data.filter(e =>
@@ -1485,6 +1510,32 @@ function applyMonthlyFilter() {
   renderMonthlyExpenses(data, _mFilter.sort);
   const isActive = _mFilter.cat !== '' || _mFilter.user !== '' || _mFilter.sort !== 'date_desc';
   document.getElementById('monthly-filter-btn')?.classList.toggle('active', isActive);
+}
+
+async function runGlobalSearch(q) {
+  const list = document.getElementById('monthly-expense-list');
+  if (!_allExpensesCache) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-text" style="color:var(--text-muted)">검색 중…</div></div>';
+    _allExpensesCache = await getAllFirestoreExpenses();
+  }
+  const lower = q.toLowerCase();
+  const results = _allExpensesCache
+    .filter(e =>
+      (e.item || '').toLowerCase().includes(lower) ||
+      (e.memo || '').toLowerCase().includes(lower)
+    )
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  renderMonthlyExpenses(results, 'search');
+}
+
+function closeMonthlySearch() {
+  _mSearch = '';
+  document.getElementById('monthly-search-input').value = '';
+  document.getElementById('monthly-search-wrap').classList.remove('show');
+  document.getElementById('monthly-list-title').style.display = '';
+  document.getElementById('monthly-search-btn').style.display = '';
+  document.getElementById('monthly-filter-btn').style.display = '';
+  applyMonthlyFilter();
 }
 
 function updateAnnualNavBtns() {
@@ -2351,6 +2402,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 필터/정렬 바텀시트
+  document.getElementById('monthly-search-btn').addEventListener('click', () => {
+    document.getElementById('monthly-list-title').style.display = 'none';
+    document.getElementById('monthly-search-btn').style.display = 'none';
+    document.getElementById('monthly-filter-btn').style.display = 'none';
+    document.getElementById('monthly-search-wrap').classList.add('show');
+    document.getElementById('monthly-search-input').focus();
+  });
+  document.getElementById('monthly-search-input').addEventListener('input', function() {
+    _mSearch = this.value.trim();
+    if (_mSearch) runGlobalSearch(_mSearch);
+    else closeMonthlySearch();
+  });
+  document.getElementById('monthly-search-close').addEventListener('click', closeMonthlySearch);
+
   document.getElementById('monthly-filter-btn').addEventListener('click', () => {
     _mFilterPending = { ..._mFilter };
     ['sort', 'cat', 'user'].forEach(type => {
