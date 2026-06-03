@@ -871,6 +871,7 @@ const CATEGORY_EMOJI = {
 };
 const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비'];
 const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '전기요금', '세금'];
+const MONTHLY_FIXED_ITEMS   = ['관리비', '도시가스', '수도요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
 
@@ -1367,8 +1368,8 @@ function renderHomeDashboard(curr, prev, ly, month) {
   (prev || []).filter(e => e.category === '고정비').forEach(e => prevFixed[e.item] = (prevFixed[e.item] || 0) + e.amount);
   (ly || []).filter(e => e.category === '고정비').forEach(e => lyFixed[e.item] = (lyFixed[e.item] || 0) + e.amount);
 
-  const paidItems = FIXED_BREAKDOWN_ITEMS.filter(i => currFixed[i] > 0);
-  const unpaidItems = FIXED_BREAKDOWN_ITEMS.filter(i => !(currFixed[i] > 0));
+  const paidItems = MONTHLY_FIXED_ITEMS.filter(i => currFixed[i] > 0);
+  const unpaidItems = MONTHLY_FIXED_ITEMS.filter(i => !(currFixed[i] > 0));
   const orderedItems = paidItems.concat(unpaidItems);
 
   let fixHtml = orderedItems.map(item => {
@@ -1425,7 +1426,7 @@ function renderMonthlyUserSplit(expenses) {
 function renderMonthlyFixedBreakdown(expenses) {
   const el = document.getElementById('monthly-fixed-breakdown');
   if (!el) return;
-  el.innerHTML = FIXED_BREAKDOWN_ITEMS.map(name => {
+  el.innerHTML = MONTHLY_FIXED_ITEMS.map(name => {
     const matching = (expenses || []).filter(e => e.item && e.item.includes(name));
     const total = matching.reduce((s, e) => s + e.amount, 0);
     const paid = total > 0;
