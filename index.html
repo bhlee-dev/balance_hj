@@ -2354,7 +2354,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('action-edit-btn').addEventListener('click', async () => {
     if (!_actionData) return;
     const data = _actionData; closeActionSheet();
-    let found = getCached(`expenses_${state.monthlyYear}_${state.monthlyMonth}`)?.find(e => e.rowIndex === data.rowIndex);
+    let found = _allExpensesCache?.find(e => e.rowIndex === data.rowIndex)
+      ?? getCached(`expenses_${state.monthlyYear}_${state.monthlyMonth}`)?.find(e => e.rowIndex === data.rowIndex);
     if (!found) {
       const res = await fetchExpenses(state.monthlyYear, state.monthlyMonth);
       found = res.find(e => e.rowIndex === data.rowIndex);
