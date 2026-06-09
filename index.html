@@ -1620,7 +1620,14 @@ function renderAnnualChart(months) {
 let _tooltipTimeout;
 function showAnnualTooltip(e, bar) {
   const tooltip = document.getElementById('svg-tooltip');
-  tooltip.innerHTML = `<strong>${bar.dataset.month}월</strong><br>총 ${formatMoney(bar.dataset.total)}<br>생활비 ${formatMoney(bar.dataset.living)}<br>고정비 ${formatMoney(bar.dataset.fixed)}`;
+  tooltip.replaceChildren(
+    Object.assign(document.createElement('strong'), { textContent: bar.dataset.month + '월' }),
+    document.createTextNode(' 총 ' + formatMoney(bar.dataset.total)),
+    document.createElement('br'),
+    document.createTextNode('생활비 ' + formatMoney(bar.dataset.living)),
+    document.createElement('br'),
+    document.createTextNode('고정비 ' + formatMoney(bar.dataset.fixed))
+  );
   tooltip.style.display = 'block';
   positionTooltip(tooltip, bar.getBoundingClientRect());
 }
@@ -1696,8 +1703,12 @@ function renderAnnualMatrix(months, fixedBreakdown) {
         });
         const tooltip = document.getElementById('svg-tooltip');
         if (!entries.length) return;
-        const lines = entries.map(e => `${escHtml(e.memo || e.item)} ${formatMoney(e.amount)}`);
-        tooltip.innerHTML = `<strong>${month}월 세금</strong><br>${lines.join('<br>')}`;
+        const nodes = [Object.assign(document.createElement('strong'), { textContent: month + '월 세금' })];
+        entries.forEach(en => {
+          nodes.push(document.createElement('br'));
+          nodes.push(document.createTextNode((en.memo || en.item) + ' ' + formatMoney(en.amount)));
+        });
+        tooltip.replaceChildren(...nodes);
         tooltip.style.display = 'block';
         positionTooltip(tooltip, this.getBoundingClientRect());
       });
