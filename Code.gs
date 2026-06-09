@@ -12,7 +12,8 @@ const ALLOWED_CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼
 // 최초 1회 설정 함수 — GAS 편집기에서 직접 실행
 // ====================================================
 function setupSpreadsheetId() {
-  PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', '1WeARJqfLry-2NmT4wgDnI_ZdsCXLULUNm-sPu14_gAE');
+  // 실제 Spreadsheet ID로 교체 후 실행
+  PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', 'YOUR_SPREADSHEET_ID');
   Logger.log('SPREADSHEET_ID 저장 완료');
 }
 
@@ -20,9 +21,7 @@ function setupSpreadsheetId() {
 // 유틸리티
 // ====================================================
 function getSpreadsheetId() {
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
-          || '1WeARJqfLry-2NmT4wgDnI_ZdsCXLULUNm-sPu14_gAE';
-  return id;
+  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '';
 }
 
 function getSheet(name) {
@@ -105,9 +104,10 @@ function doGet(e) {
     if (action === 'getYearlySummary')              return jsonResponse(getYearlySummary(+p.year));
     if (action === 'getAvailableYears')             return jsonResponse(getAvailableYears());
     if (action === 'getYearlyFixedBreakdown')       return jsonResponse(getYearlyFixedBreakdown(+p.year));
-    return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
+    return jsonResponse({ success: false, error: '알 수 없는 액션' });
   } catch(err) {
-    return jsonResponse({ success: false, error: err.message });
+    Logger.log('오류: ' + err.message);
+    return jsonResponse({ success: false, error: '서버 오류가 발생했습니다.' });
   }
 }
 
@@ -126,9 +126,10 @@ function doPost(e) {
     if (action === 'addExpense')    return jsonResponse(addExpense(payload.data));
     if (action === 'updateExpense') return jsonResponse(updateExpense(payload.docId, payload.data));
     if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.docId));
-    return jsonResponse({ success: false, error: '알 수 없는 액션: ' + action });
+    return jsonResponse({ success: false, error: '알 수 없는 액션' });
   } catch(err) {
-    return jsonResponse({ success: false, error: err.message });
+    Logger.log('오류: ' + err.message);
+    return jsonResponse({ success: false, error: '서버 오류가 발생했습니다.' });
   }
 }
 
