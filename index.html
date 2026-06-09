@@ -2332,12 +2332,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const PIN_MAX_ATTEMPTS = 5;
+  const PIN_LOCKOUT_MS   = 30 * 60 * 1000; // 30분
+
+  function getPinLockState() {
+    try {
+      const raw = sessionStorage.getItem('pin_lock');
+      return raw ? JSON.parse(raw) : { attempts: 0, lockedUntil: 0 };
+    } catch { return { attempts: 0, lockedUntil: 0 }; }
+  }
+  function setPinLockState(state) {
+    sessionStorage.setItem('pin_lock', JSON.stringify(state));
+  }
+
   async function submitPin() {
     const pin = document.getElementById('pin-input').value.trim();
     if (!pin) return;
 
     const btn = document.getElementById('pin-submit');
     const errEl = document.getElementById('pin-error');
+
+    const lock = getPinLockState();
+    if (lock.lockedUntil > Date.now()) {
+      const mins = Math.ceil((lock.lockedUntil - Date.now()) / 60000);
+      errEl.textContent = `잠시 후 다시 시도해주세요. (${mins}분 후)`;
+      errEl.style.display = 'block';
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = '확인 중...';
     errEl.style.display = 'none';
@@ -2360,13 +2382,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       if (!matched) throw new Error('auth/wrong-pin');
-      // onAuthStateChanged가 트리거되어 defaultUser 설정 후 startApp() 실행됨
+      setPinLockState({ attempts: 0, lockedUntil: 0 });
       document.getElementById('pin-input').value = '';
       btn.disabled = false;
       btn.textContent = '확인';
     } catch (e) {
-      console.error('인증 실패:', e);
-      errEl.textContent = 'PIN이 올바르지 않습니다.';
+      const newAttempts = lock.attempts + 1;
+      const lockedUntil = newAttempts >= PIN_MAX_ATTEMPTS ? Date.now() + PIN_LOCKOUT_MS : 0;
+      setPinLockState({ attempts: newAttempts, lockedUntil });
+      if (lockedUntil) {
+        errEl.textContent = `PIN 5회 오류. 30분 후 다시 시도해주세요.`;
+      } else {
+        errEl.textContent = `PIN이 올바르지 않습니다. (${newAttempts}/${PIN_MAX_ATTEMPTS})`;
+      }
       errEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = '확인';
