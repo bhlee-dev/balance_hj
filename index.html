@@ -871,8 +871,6 @@ const AUTH_USERS = [
   { email: 'hj@ledger.com',    defaultUser: '희' },
   { email: 'jeong@ledger.com', defaultUser: '정' }
 ];
-// GAS 백업용 고정 토큰 (사용자 PIN과 분리)
-const GAS_SYNC_PIN = '0300';
 
 // 전역 상수 및 상태 변수
 const CATEGORY_EMOJI = {
@@ -973,10 +971,13 @@ async function fetchExpenses(year, month) {
 // ====================================================
 // [ 핵심 2 ] 듀얼 라이트(Dual-Write) 백그라운드 싱크
 // ====================================================
-function syncToGoogleSheet(expenseData) {
-  const pin = GAS_SYNC_PIN;
-  const payload = { action: 'addExpense', pin: pin, data: expenseData };
-  
+async function syncToGoogleSheet(expenseData) {
+  const user = auth.currentUser;
+  if (!user) return;
+  let token;
+  try { token = await user.getIdToken(); } catch(e) { return; }
+  const payload = { action: 'addExpense', token, data: expenseData };
+
   fetch(GAS_BACKEND_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },

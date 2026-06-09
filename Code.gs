@@ -65,17 +65,24 @@ function clampAmount(n) {
 }
 
 // ====================================================
-// PIN 설정 (최초 1회, GAS 편집기에서 직접 실행)
+// Firebase ID Token 검증
 // ====================================================
-function setupPin() {
-  // 아래 '0000' 을 원하는 PIN으로 교체 후 실행
-  PropertiesService.getScriptProperties().setProperty('APP_PIN', '0000');
-  Logger.log('APP_PIN 저장 완료');
-}
+const ALLOWED_EMAILS = ['hj@ledger.com', 'jeong@ledger.com'];
 
-function verifyPin(pin) {
-  var stored = PropertiesService.getScriptProperties().getProperty('APP_PIN');
-  return stored != null && pin === stored;
+function verifyFirebaseToken(token) {
+  if (!token) return false;
+  try {
+    var res = UrlFetchApp.fetch(
+      'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token),
+      { muteHttpExceptions: true }
+    );
+    if (res.getResponseCode() !== 200) return false;
+    var data = JSON.parse(res.getContentText());
+    return ALLOWED_EMAILS.indexOf(data.email) !== -1;
+  } catch(e) {
+    Logger.log('Token 검증 오류: ' + e.message);
+    return false;
+  }
 }
 
 function jsonResponse(data) {
@@ -88,7 +95,7 @@ function jsonResponse(data) {
 // ====================================================
 function doGet(e) {
   var p = e.parameter || {};
-  if (!verifyPin(p.pin || '')) return jsonResponse({ success: false, error: '인증 실패' });
+  if (!verifyFirebaseToken(p.token || '')) return jsonResponse({ success: false, error: '인증 실패' });
 
   var action = p.action || '';
   try {
@@ -112,7 +119,7 @@ function doPost(e) {
   try { payload = JSON.parse(e.postData.contents); }
   catch(err) { return jsonResponse({ success: false, error: '요청 파싱 실패' }); }
 
-  if (!verifyPin(payload.pin || '')) return jsonResponse({ success: false, error: '인증 실패' });
+  if (!verifyFirebaseToken(payload.token || '')) return jsonResponse({ success: false, error: '인증 실패' });
 
   var action = payload.action || '';
   try {
