@@ -1929,8 +1929,8 @@ async function getAllFirestoreExpenses() {
 }
 
 async function getAllSheetsExpenses() {
-  const pin = localStorage.getItem('app_pin_raw') || '';
-  const res = await fetch(`${GAS_BACKEND_URL}?action=getAllExpenses&pin=${encodeURIComponent(pin)}`, { redirect: 'follow' });
+  const token = await auth.currentUser?.getIdToken() || '';
+  const res = await fetch(`${GAS_BACKEND_URL}?action=getAllExpenses&token=${encodeURIComponent(token)}`, { redirect: 'follow' });
   const result = await res.json();
   if (!result.success) throw new Error(result.error || 'GAS 오류');
   return result.data;
@@ -2035,12 +2035,12 @@ async function applySmartSync(diff) {
   const orig = applyBtn.textContent;
   applyBtn.textContent = '동기화 중...';
   applyBtn.disabled = retryBtn.disabled = true;
-  const pin = localStorage.getItem('app_pin_raw') || '';
+  const token = await auth.currentUser?.getIdToken() || '';
   try {
     const res = await fetch(GAS_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'smartSync', pin, toAdd: diff.toAdd, toUpdate: diff.toUpdate, toDelete: diff.toDelete }),
+      body: JSON.stringify({ action: 'smartSync', token, toAdd: diff.toAdd, toUpdate: diff.toUpdate, toDelete: diff.toDelete }),
       redirect: 'follow'
     });
     const result = await res.json();
