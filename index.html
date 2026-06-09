@@ -690,6 +690,13 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
           <small>snowball-hj.web.app</small>
         </span>
       </button>
+      <button class="app-switcher-item" id="as-trip-btn">
+        <span style="font-size:22px">✈️</span>
+        <span class="app-switcher-item-label">
+          여행경비
+          <small>bhlee-dev.github.io/trip_hj</small>
+        </span>
+      </button>
     </div>
   </div>
 
@@ -2573,6 +2580,9 @@ document.getElementById('as-current-btn').addEventListener('click', () => {
 });
 document.getElementById('as-snowball-btn').addEventListener('click', () => {
   window.location.href = 'https://snowball-hj.web.app/';
+});
+document.getElementById('as-trip-btn').addEventListener('click', () => {
+  window.location.href = 'https://bhlee-dev.github.io/trip_hj/index_travel.html';
 });
 </script>
 </body>
