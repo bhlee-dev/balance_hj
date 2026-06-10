@@ -5,12 +5,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="가계부">
 <meta name="theme-color" content="#000000">
 <title>가계부</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -91,13 +93,13 @@ body{display:flex;flex-direction:column;align-items:stretch}
 @media(min-width:600px){body{align-items:center}#app{max-width:480px}}
 
 /* ═══════════════════════════════════════════ OFFLINE BAR ═══ */
-#offline-bar{display:none;background:rgba(200,162,74,0.09);color:var(--warning);border-bottom:1px solid rgba(200,162,74,0.16);font-size:var(--text-caption);font-weight:var(--fw-medium);padding:10px 20px;text-align:center;cursor:pointer;position:sticky;top:0;z-index:200}
+#offline-bar{display:none;background:rgba(200,162,74,0.09);color:var(--warning);border-bottom:1px solid rgba(200,162,74,0.16);font-size:var(--text-caption);font-weight:var(--fw-medium);padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px;text-align:center;cursor:pointer;position:sticky;top:0;z-index:200}
 #offline-bar.show{display:block}
 #toast{position:fixed;top:max(env(safe-area-inset-top,0px) + 16px,20px);left:50%;transform:translateX(-50%) translateY(calc(-100% - 8px));opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;z-index:500;background:rgba(28,28,30,0.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:999px;color:#F5F5F7;font-size:var(--text-caption);font-weight:var(--fw-medium);padding:11px 20px;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ════════════════════════════════════════════════ HEADER ═══ */
-#app-header{height:54px;background:rgba(17,17,18,0.82);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:100;flex-shrink:0}
+#app-header{height:calc(54px + env(safe-area-inset-top,0px));background:rgba(17,17,18,0.82);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,0px) 22px 0;position:sticky;top:0;z-index:100;flex-shrink:0}
 #app-header.with-offline{top:40px}
 #header-title-wrap{display:flex;align-items:center;gap:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;border-radius:8px;padding:4px 6px;margin:-4px -6px}
 #header-title-wrap:active{opacity:.55}
@@ -336,9 +338,29 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 .confirm-cancel{background:var(--surface-2);color:var(--text);border:1px solid var(--border-mid)}
 .confirm-ok{background:var(--danger);color:#fff;border:none}
 
+/* ════════════════════════════ 바텀시트 공통 모션 ═══ */
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+@keyframes ovOut{to{opacity:0}}
+@keyframes sheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes sheetOut{to{transform:translateY(100%)}}
+@keyframes confIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes confOut{to{opacity:0;transform:scale(.94)}}
+#action-sheet-overlay.show,#filter-sheet-overlay.show,#data-mgmt-overlay.show,#app-switcher-overlay.show,#confirm-overlay.show{animation:ovIn .25s ease}
+#action-sheet-overlay.closing,#filter-sheet-overlay.closing,#data-mgmt-overlay.closing,#app-switcher-overlay.closing,#confirm-overlay.closing{display:flex;animation:ovOut .2s ease forwards}
+#action-sheet-overlay.show #action-sheet,#filter-sheet-overlay.show #filter-sheet,#data-mgmt-overlay.show #data-mgmt-sheet,#app-switcher-overlay.show #app-switcher-sheet{animation:sheetIn .3s cubic-bezier(.32,.72,0,1)}
+#action-sheet-overlay.closing #action-sheet,#filter-sheet-overlay.closing #filter-sheet,#data-mgmt-overlay.closing #data-mgmt-sheet,#app-switcher-overlay.closing #app-switcher-sheet{animation:sheetOut .2s ease forwards}
+#confirm-overlay.show #confirm-dialog{animation:confIn .22s ease}
+#confirm-overlay.closing #confirm-dialog{animation:confOut .2s ease forwards}
+#action-sheet::before,#filter-sheet::before,#data-mgmt-sheet::before,#app-switcher-sheet::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:10px auto 2px}
+
 /* ════════════════════════════ ANNUAL CHART / TABLE ═══ */
 #annual-chart-wrap{padding:0 16px 12px;overflow-x:auto;position:relative}
 #annual-svg{width:100%;height:auto;display:block}
+.annual-bar-g{transition:opacity .25s ease}
+#annual-detail{display:none;align-items:baseline;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding:12px 16px;background:var(--surface-1);border:1px solid var(--border-mid);border-radius:var(--radius-md);font-size:var(--text-micro);color:var(--text-sub);font-variant-numeric:tabular-nums;animation:ovIn .2s ease}
+#annual-detail.show{display:flex}
+#annual-detail .ad-month{font-size:var(--text-caption);font-weight:var(--fw-semibold);color:var(--text)}
+#annual-detail b{font-weight:var(--fw-medium);color:var(--text)}
 .annual-matrix-wrap{margin:0 0 24px}
 .annual-matrix{width:100%;table-layout:fixed;border-collapse:collapse}
 .annual-matrix th{padding:9px 8px;background:transparent;color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
@@ -367,6 +389,8 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #home-summary-card{background:var(--surface-1);border-radius:var(--radius-card);padding:var(--sp-5);margin:20px 0 12px;border:1px solid var(--border)}
 .home-month-label{font-size:var(--text-micro);font-weight:var(--fw-regular);color:var(--text-muted);margin-bottom:14px;letter-spacing:var(--ls-wide);text-transform:uppercase}
 .home-total{font-size:var(--text-hero);font-weight:var(--fw-bold);color:var(--text);font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:var(--ls-tight)}
+.home-pace{font-size:var(--text-micro);color:var(--text-sub);margin-top:6px;min-height:14px;font-variant-numeric:tabular-nums}
+.home-pace.flat{color:var(--text-muted)}
 .home-sub-labels{display:flex;gap:22px;margin-top:16px}
 .home-sub-label{font-size:var(--text-micro);font-weight:var(--fw-regular);color:var(--text-muted);letter-spacing:var(--ls-normal)}
 
@@ -434,7 +458,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
   <header id="app-header">
     <div id="header-title-wrap">
       <span id="header-title">가계부</span>
-      <span id="header-version">v8</span>
+      <span id="header-version">v9</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);margin-left:1px;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <span id="header-month" class="num"></span>
@@ -448,6 +472,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
         </button>
         <div class="home-month-label" id="home-month-label"></div>
         <div class="home-total num" id="home-total">0원</div>
+        <div class="home-pace num" id="home-pace"></div>
         <div class="home-sub-labels">
           <span class="home-sub-label" id="home-living-label">생활비 0원</span>
           <span class="home-sub-label" id="home-fixed-label">고정비 0원</span>
@@ -633,6 +658,7 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <div class="section-header">월별 지출 추이</div>
       <div id="annual-chart-wrap" style="position:relative">
         <svg id="annual-svg" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="annual-detail"></div>
         <div id="svg-tooltip" class="svg-tooltip" style="display:none"></div>
       </div>
 
@@ -920,6 +946,22 @@ let _actionData = null;
 function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function formatMoney(n) { return Number(n || 0).toLocaleString('ko-KR') + '원'; }
 function formatNum(n) { return Number(n || 0).toLocaleString('ko-KR'); }
+
+// 숫자 카운트업 (cubic ease-out)
+function animateValue(el, target, fmt) {
+  const start = el._val || 0;
+  if (el._raf) cancelAnimationFrame(el._raf);
+  if (start === target) { el.textContent = fmt(target); el._val = target; return; }
+  const dur = 600, t0 = performance.now();
+  function step(t) {
+    const p = Math.min((t - t0) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(Math.round(start + (target - start) * ease));
+    if (p < 1) el._raf = requestAnimationFrame(step);
+    else { el._val = target; el._raf = null; }
+  }
+  el._raf = requestAnimationFrame(step);
+}
 function parseMoney(str) { return parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0; }
 function clampAmount(n) { return Math.min(Math.max(0, n), 9999999); }
 function formatDate(dateStr) { const d = new Date(dateStr + 'T00:00:00'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DAY_KO[d.getDay()] + ')'; }
@@ -1320,6 +1362,7 @@ async function loadAnnualData() {
 // ====================================================
 function renderHomeSkeleton() {
   document.getElementById('home-total').innerHTML = '<div class="skeleton" style="width:140px;height:32px;border-radius:6px"></div>';
+  document.getElementById('home-pace').textContent = '';
   document.getElementById('dash-living').innerHTML = [0,1,2].map(() => '<div class="skeleton" style="height:44px;margin:6px 0;border-radius:6px"></div>').join('');
   document.getElementById('dash-fixed').innerHTML  = [0,1].map(() => '<div class="skeleton" style="height:44px;margin:6px 0;border-radius:6px"></div>').join('');
 }
@@ -1336,7 +1379,7 @@ function renderAnnualSkeleton() {
 function renderHomeSummary(s) {
   const now = new Date();
   document.getElementById('home-month-label').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
-  document.getElementById('home-total').textContent = formatMoney(s.total);
+  animateValue(document.getElementById('home-total'), s.total, formatMoney);
   document.getElementById('home-living-label').textContent = '생활비 ' + formatMoney(s.livingTotal);
   document.getElementById('home-fixed-label').textContent = '고정비 ' + formatMoney(s.fixedTotal);
 }
@@ -1360,6 +1403,24 @@ function renderHomeDashboard(curr, prev, ly, month) {
 
   const prevDataExists = (prev || []).length > 0;
   const topLiv = livCats.filter(c => currLiv[c] > 0).sort((a,b) => currLiv[b] - currLiv[a]).slice(0, 3);
+
+  // 생활비 총액 페이스 비교 (이번 달 누적 vs 지난달 같은 날까지)
+  const paceEl = document.getElementById('home-pace');
+  const currLivTotal = livCats.reduce((s, c) => s + currLiv[c], 0);
+  const prevLivTotalMTD = livCats.reduce((s, c) => s + prevLivMTD[c], 0);
+  const paceDiff = currLivTotal - prevLivTotalMTD;
+  if (!prevDataExists || (currLivTotal === 0 && prevLivTotalMTD === 0)) {
+    paceEl.className = 'home-pace num flat'; paceEl.textContent = '';
+  } else if (paceDiff < 0) {
+    paceEl.className = 'home-pace num';
+    paceEl.textContent = `↘ 지난달 ${todayDay}일까지보다 생활비 ${formatNum(Math.abs(paceDiff))}원 덜 쓰는 중`;
+  } else if (paceDiff > 0) {
+    paceEl.className = 'home-pace num';
+    paceEl.textContent = `↗ 지난달 ${todayDay}일까지보다 생활비 ${formatNum(paceDiff)}원 더 쓰는 중`;
+  } else {
+    paceEl.className = 'home-pace num flat';
+    paceEl.textContent = '지난달 같은 날과 동일한 페이스예요';
+  }
 
   const livHtml = topLiv.length === 0
     ? '<div class="dash-compare flat" style="padding:4px 0 12px">이번 달 생활비 내역이 없어요.</div>'
@@ -1610,27 +1671,38 @@ function renderAnnualChart(months) {
       const topY = livingH > 0 ? livingY : fixedY;
       barHtml += `<rect x="${x.toFixed(1)}" y="${topY.toFixed(1)}" width="${barW}" height="${(baseY - topY).toFixed(1)}" fill="transparent" data-month="${m.month}" data-total="${total}" data-living="${living}" data-fixed="${fixed}" class="annual-bar" style="cursor:pointer"/>`;
     }
-    return barHtml + `<text x="${(x + barW / 2).toFixed(1)}" y="${PT + chartH + 14}" text-anchor="middle" font-size="9" fill="var(--text-muted)">${m.month}월</text>`;
+    return `<g class="annual-bar-g" data-month="${m.month}">` + barHtml + `<text x="${(x + barW / 2).toFixed(1)}" y="${PT + chartH + 14}" text-anchor="middle" font-size="9" fill="var(--text-muted)">${m.month}월</text></g>`;
   }).join('');
-  
+
   svg.innerHTML = legend + bars;
-  svg.querySelectorAll('.annual-bar').forEach(bar => bar.addEventListener('click', function(e) { e.stopPropagation(); showAnnualTooltip(e, this); }));
+  clearAnnualSelection();
+  svg.querySelectorAll('.annual-bar').forEach(bar => bar.addEventListener('click', function(e) { e.stopPropagation(); selectAnnualBar(this); }));
+}
+
+let _annualSel = null;
+function clearAnnualSelection() {
+  _annualSel = null;
+  document.querySelectorAll('#annual-svg .annual-bar-g').forEach(g => g.style.opacity = '');
+  document.getElementById('annual-detail').classList.remove('show');
+}
+
+function selectAnnualBar(bar) {
+  const month = bar.dataset.month;
+  if (_annualSel === month) { clearAnnualSelection(); return; }
+  _annualSel = month;
+  document.querySelectorAll('#annual-svg .annual-bar-g').forEach(g =>
+    g.style.opacity = g.dataset.month === month ? '' : '.3'
+  );
+  const detail = document.getElementById('annual-detail');
+  detail.innerHTML =
+    `<span class="ad-month">${month}월</span>` +
+    `<span>총 <b>${formatMoney(bar.dataset.total)}</b></span>` +
+    `<span>생활비 <b>${formatMoney(bar.dataset.living)}</b></span>` +
+    `<span>고정비 <b>${formatMoney(bar.dataset.fixed)}</b></span>`;
+  detail.classList.add('show');
 }
 
 let _tooltipTimeout;
-function showAnnualTooltip(e, bar) {
-  const tooltip = document.getElementById('svg-tooltip');
-  tooltip.replaceChildren(
-    Object.assign(document.createElement('strong'), { textContent: bar.dataset.month + '월' }),
-    document.createTextNode(' 총 ' + formatMoney(bar.dataset.total)),
-    document.createElement('br'),
-    document.createTextNode('생활비 ' + formatMoney(bar.dataset.living)),
-    document.createElement('br'),
-    document.createTextNode('고정비 ' + formatMoney(bar.dataset.fixed))
-  );
-  tooltip.style.display = 'block';
-  positionTooltip(tooltip, bar.getBoundingClientRect());
-}
 
 function positionTooltip(tooltip, rect) {
   const cx = rect.left + rect.width / 2;
@@ -1896,8 +1968,55 @@ window.openActionSheet = function(btn) {
   document.getElementById('action-sheet-overlay').classList.add('show');
 }
 function closeActionSheet() {
-  document.getElementById('action-sheet-overlay').classList.remove('show');
+  closeSheetOverlay('action-sheet-overlay');
   _actionData = null;
+}
+
+// 바텀시트 공통 닫기 (slide-down 모션 후 display 제거)
+function closeSheetOverlay(id) {
+  const ov = document.getElementById(id);
+  if (!ov.classList.contains('show') || ov.classList.contains('closing')) return;
+  ov.classList.add('closing');
+  setTimeout(() => {
+    ov.classList.remove('show');
+    ov.classList.remove('closing');
+    if (ov.firstElementChild) ov.firstElementChild.style.transform = '';
+  }, 200);
+}
+
+// 시트 스와이프 다운 닫기 제스처
+function initSheetGestures() {
+  [
+    ['action-sheet', 'action-sheet-overlay'],
+    ['filter-sheet', 'filter-sheet-overlay'],
+    ['data-mgmt-sheet', 'data-mgmt-overlay'],
+    ['app-switcher-sheet', 'app-switcher-overlay']
+  ].forEach(([panelId, overlayId]) => {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    let startY = 0, dy = 0, dragging = false;
+    panel.addEventListener('touchstart', e => {
+      if (panel.scrollTop > 0) return;
+      startY = e.touches[0].clientY; dy = 0; dragging = true;
+    }, { passive: true });
+    panel.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      dy = e.touches[0].clientY - startY;
+      panel.style.transform = dy > 0 && panel.scrollTop <= 0 ? `translateY(${dy}px)` : '';
+    }, { passive: true });
+    panel.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      if (dy > 80) {
+        if (overlayId === 'action-sheet-overlay') closeActionSheet();
+        else closeSheetOverlay(overlayId);
+      } else {
+        panel.style.transition = 'transform .2s ease';
+        panel.style.transform = '';
+        setTimeout(() => { panel.style.transition = ''; }, 200);
+      }
+    });
+  });
 }
 
 // ====================================================
@@ -2079,9 +2198,16 @@ async function applySmartSync(diff) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.addEventListener('click', () => {
+  initSheetGestures();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  document.addEventListener('click', e => {
     const t = document.getElementById('svg-tooltip');
     if (t) { t.style.display = 'none'; clearTimeout(_tooltipTimeout); }
+    if (_annualSel && !e.target.closest('#annual-detail')) clearAnnualSelection();
   });
 
   document.getElementById('expense-date').value = todayStr();
@@ -2223,12 +2349,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('confirm-msg').textContent = `'${data.name}'을 삭제할까요? 되돌릴 수 없습니다.`;
     document.getElementById('confirm-overlay').classList.add('show');
     document.getElementById('confirm-ok-btn').onclick = () => {
-      document.getElementById('confirm-overlay').classList.remove('show');
+      closeSheetOverlay('confirm-overlay');
       doDeleteExpense(data.rowIndex, data.name);
     };
   });
-  document.getElementById('confirm-cancel-btn').addEventListener('click', () => document.getElementById('confirm-overlay').classList.remove('show'));
-  document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+  document.getElementById('confirm-cancel-btn').addEventListener('click', () => closeSheetOverlay('confirm-overlay'));
+  document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) closeSheetOverlay('confirm-overlay'); });
 
   // 데이터 관리 모달 (홈 탭 구름 아이콘)
   document.getElementById('home-sync-btn').addEventListener('click', () => {
@@ -2242,13 +2368,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (this._diff) applySmartSync(this._diff);
   });
   document.getElementById('data-mgmt-overlay').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show');
+    if (e.target === this) closeSheetOverlay('data-mgmt-overlay');
   });
   document.getElementById('dmgmt-close-btn').addEventListener('click', () => {
-    document.getElementById('data-mgmt-overlay').classList.remove('show');
+    closeSheetOverlay('data-mgmt-overlay');
   });
   document.getElementById('sync-done-btn').addEventListener('click', () => {
-    document.getElementById('data-mgmt-overlay').classList.remove('show');
+    closeSheetOverlay('data-mgmt-overlay');
   });
 
   // 필터/정렬 바텀시트
@@ -2298,19 +2424,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('filter-apply-btn').addEventListener('click', () => {
     _mFilter = { ..._mFilterPending };
-    document.getElementById('filter-sheet-overlay').classList.remove('show');
+    closeSheetOverlay('filter-sheet-overlay');
     applyMonthlyFilter();
   });
 
   document.getElementById('filter-reset-btn').addEventListener('click', () => {
     _mFilter = { sort: 'date_desc', cat: '', user: '' };
     _mFilterPending = { sort: 'date_desc', cat: '', user: '' };
-    document.getElementById('filter-sheet-overlay').classList.remove('show');
+    closeSheetOverlay('filter-sheet-overlay');
     applyMonthlyFilter();
   });
 
   document.getElementById('filter-sheet-overlay').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show');
+    if (e.target === this) closeSheetOverlay('filter-sheet-overlay');
   });
 
   // ====================================================
@@ -2430,10 +2556,10 @@ document.getElementById('header-title-wrap').addEventListener('click', () => {
   document.getElementById('app-switcher-overlay').classList.add('show');
 });
 document.getElementById('app-switcher-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+  if (e.target === e.currentTarget) closeSheetOverlay('app-switcher-overlay');
 });
 document.getElementById('as-current-btn').addEventListener('click', () => {
-  document.getElementById('app-switcher-overlay').classList.remove('show');
+  closeSheetOverlay('app-switcher-overlay');
 });
 document.getElementById('as-snowball-btn').addEventListener('click', () => {
   window.location.href = 'https://snowball-hj.web.app/';

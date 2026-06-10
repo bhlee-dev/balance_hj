@@ -5,7 +5,7 @@
 // 시트 이름 상수 (SPREADSHEET_ID는 PropertiesService에 저장)
 const RAW_SHEET = 'RAW_DATA';
 const CACHE_DURATION_SEC = 30;
-const ALLOWED_USERS = ['희', '정', '남편', '아내']; // 구 데이터 호환 유지
+const ALLOWED_USERS = ['희', '정', '희정', '남편', '아내']; // 구 데이터 호환 유지, '희정'=공동 고정비
 const ALLOWED_CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비','기타'];
 
 // ====================================================
@@ -20,8 +20,11 @@ function setupSpreadsheetId() {
 // ====================================================
 // 유틸리티
 // ====================================================
+// Config.gs(gitignore, GAS에만 존재)의 SPREADSHEET_ID_FALLBACK을 폴백으로 사용
 function getSpreadsheetId() {
-  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '';
+  var stored = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (stored) return stored;
+  return typeof SPREADSHEET_ID_FALLBACK !== 'undefined' ? SPREADSHEET_ID_FALLBACK : '';
 }
 
 function getSheet(name) {
@@ -67,17 +70,25 @@ function clampAmount(n) {
 // Firebase ID Token 검증
 // ====================================================
 const ALLOWED_EMAILS = ['hj@ledger.com', 'jeong@ledger.com'];
+const FIREBASE_API_KEY = 'AIzaSyAL7kaWcmpD4Q6dnzhAzeQYbc-leIxohlc';
 
+// tokeninfo 엔드포인트는 Firebase(securetoken) 발급 토큰을 검증하지 못함 — accounts:lookup 사용
 function verifyFirebaseToken(token) {
   if (!token) return false;
   try {
     var res = UrlFetchApp.fetch(
-      'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token),
-      { muteHttpExceptions: true }
+      'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + FIREBASE_API_KEY,
+      {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({ idToken: token }),
+        muteHttpExceptions: true
+      }
     );
     if (res.getResponseCode() !== 200) return false;
     var data = JSON.parse(res.getContentText());
-    return ALLOWED_EMAILS.indexOf(data.email) !== -1;
+    if (!data.users || !data.users.length) return false;
+    return ALLOWED_EMAILS.indexOf(data.users[0].email) !== -1;
   } catch(e) {
     Logger.log('Token 검증 오류: ' + e.message);
     return false;
@@ -104,6 +115,7 @@ function doGet(e) {
     if (action === 'getYearlySummary')              return jsonResponse(getYearlySummary(+p.year));
     if (action === 'getAvailableYears')             return jsonResponse(getAvailableYears());
     if (action === 'getYearlyFixedBreakdown')       return jsonResponse(getYearlyFixedBreakdown(+p.year));
+    if (action === 'getAllExpenses')                return jsonResponse(getAllExpenses());
     return jsonResponse({ success: false, error: '알 수 없는 액션' });
   } catch(err) {
     Logger.log('오류: ' + err.message);
@@ -126,6 +138,7 @@ function doPost(e) {
     if (action === 'addExpense')    return jsonResponse(addExpense(payload.data));
     if (action === 'updateExpense') return jsonResponse(updateExpense(payload.docId, payload.data));
     if (action === 'deleteExpense') return jsonResponse(deleteExpense(payload.docId));
+    if (action === 'smartSync')     return jsonResponse(smartSync(payload));
     return jsonResponse({ success: false, error: '알 수 없는 액션' });
   } catch(err) {
     Logger.log('오류: ' + err.message);
@@ -264,6 +277,123 @@ function deleteExpense(docId) {
     }
 
     return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 시트 전체 데이터 조회 (스마트 동기화 진단용, 캐시 없음)
+ */
+function getAllExpenses() {
+  try {
+    const sheet = getSheet(RAW_SHEET);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, data: [] };
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+    const data = [];
+    values.forEach(function(row) {
+      const dateVal = row[0];
+      if (!dateVal) return;
+      const dateStr = typeof dateVal === 'string' ? dateVal
+        : Utilities.formatDate(new Date(dateVal), 'Asia/Seoul', 'yyyy-MM-dd');
+      data.push({
+        date: dateStr,
+        item: String(row[1] || ''),
+        category: String(row[2] || ''),
+        user: String(row[3] || ''),
+        amount: Number(row[4]) || 0,
+        memo: String(row[5] || ''),
+        docId: String(row[7] || '')
+      });
+    });
+    return { success: true, data: data };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 스마트 동기화 — Firestore 기준으로 시트를 일괄 추가/수정/삭제
+ * @param {Object} payload - { toAdd: [{rowIndex(docId), date, item, ...}], toUpdate: [{docId, data}], toDelete: [{docId}] }
+ */
+function smartSync(payload) {
+  try {
+    const sheet = getSheet(RAW_SHEET);
+    const toAdd = payload.toAdd || [];
+    const toUpdate = payload.toUpdate || [];
+    const toDelete = payload.toDelete || [];
+    let added = 0, updated = 0, deleted = 0;
+
+    // docId → 행 번호 맵 (1회 조회)
+    const idMap = {};
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      const ids = sheet.getRange(2, 8, lastRow - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) {
+        if (ids[i][0]) idMap[String(ids[i][0])] = i + 2;
+      }
+    }
+
+    // 수정 (행 번호 유지되는 단계에서 먼저 처리)
+    toUpdate.forEach(function(u) {
+      const row = idMap[String(u.docId)];
+      if (!row || !u.data) return;
+      const d = u.data;
+      sheet.getRange(row, 1, 1, 6).setValues([[
+        sanitizeString(String(d.date || ''), 10),
+        sanitizeString(String(d.item || ''), 50),
+        sanitizeString(String(d.category || ''), 10),
+        sanitizeString(String(d.user || ''), 10),
+        clampAmount(parseAmount(d.amount)),
+        sanitizeString(String(d.memo || ''), 200)
+      ]]);
+      updated++;
+    });
+
+    // 삭제 (아래쪽 행부터 — 행 번호 밀림 방지), 삭제 전 날짜 수집
+    const deletedDates = [];
+    const delRows = toDelete
+      .map(function(t) { return idMap[String(t.docId)]; })
+      .filter(function(r) { return r; })
+      .sort(function(a, b) { return b - a; });
+    delRows.forEach(function(r) {
+      const dv = sheet.getRange(r, 1).getValue();
+      if (dv) deletedDates.push(typeof dv === 'string' ? dv : Utilities.formatDate(new Date(dv), 'Asia/Seoul', 'yyyy-MM-dd'));
+      sheet.deleteRow(r);
+      deleted++;
+    });
+
+    // 추가 (rowIndex 필드 = Firestore docId)
+    toAdd.forEach(function(item) {
+      sheet.appendRow([
+        sanitizeString(String(item.date || ''), 10),
+        sanitizeString(String(item.item || ''), 50),
+        sanitizeString(String(item.category || ''), 10),
+        sanitizeString(String(item.user || ''), 10),
+        clampAmount(parseAmount(item.amount)),
+        sanitizeString(String(item.memo || ''), 200),
+        String(item.createdAt || new Date().toISOString()),
+        sanitizeString(String(item.rowIndex || ''), 100)
+      ]);
+      added++;
+    });
+
+    // 영향 받은 년/월 캐시 전체 무효화
+    const months = {};
+    function markMonth(dateStr) {
+      if (!dateStr || !/^\d{4}-\d{2}/.test(dateStr)) return;
+      months[dateStr.slice(0, 7)] = true;
+    }
+    toAdd.forEach(function(i) { markMonth(String(i.date || '')); });
+    toUpdate.forEach(function(u) { markMonth(String((u.data && u.data.date) || '')); markMonth(String((u.old && u.old.date) || '')); });
+    deletedDates.forEach(markMonth);
+    Object.keys(months).forEach(function(ym) {
+      invalidateCache(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10));
+    });
+
+    return { success: true, added: added, updated: updated, deleted: deleted };
   } catch (e) {
     return { success: false, error: e.message };
   }

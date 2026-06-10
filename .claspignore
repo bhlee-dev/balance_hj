@@ -1,0 +1,9 @@
+.claude/**
+node_modules/**
+*.html
+*.md
+.git/**
+script-step1.js
+sw.js
+manifest.json
+icons/**
