@@ -66,6 +66,15 @@ function clampAmount(n) {
   return Math.min(Math.max(0, n), 9999999);
 }
 
+// 편집기에서 1회 실행 — UrlFetchApp(외부 요청) 권한 승인용
+function authorizeOnce() {
+  var res = UrlFetchApp.fetch(
+    'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + FIREBASE_API_KEY,
+    { method: 'post', contentType: 'application/json', payload: '{}', muteHttpExceptions: true }
+  );
+  Logger.log('HTTP ' + res.getResponseCode() + ' — 외부 요청 권한 승인 완료');
+}
+
 // ====================================================
 // Firebase ID Token 검증
 // ====================================================
