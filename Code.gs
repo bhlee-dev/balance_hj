@@ -335,13 +335,15 @@ function smartSync(payload) {
     const toDelete = payload.toDelete || [];
     let added = 0, updated = 0, deleted = 0;
 
-    // docId → 행 번호 맵 (1회 조회)
+    // docId → 행 번호 맵 (1회 조회) + docId 없는 행(구버전 자동 백업 잔재) 수집
     const idMap = {};
+    const orphanRows = [];
     const lastRow = sheet.getLastRow();
     if (lastRow >= 2) {
       const ids = sheet.getRange(2, 8, lastRow - 1, 1).getValues();
       for (let i = 0; i < ids.length; i++) {
         if (ids[i][0]) idMap[String(ids[i][0])] = i + 2;
+        else orphanRows.push(i + 2);
       }
     }
 
@@ -362,11 +364,13 @@ function smartSync(payload) {
     });
 
     // 삭제 (아래쪽 행부터 — 행 번호 밀림 방지), 삭제 전 날짜 수집
+    // deleteOrphans: docId 없는 행도 함께 삭제 — 대응 데이터는 toAdd가 docId와 함께 다시 추가함
     const deletedDates = [];
-    const delRows = toDelete
+    let delRows = toDelete
       .map(function(t) { return idMap[String(t.docId)]; })
-      .filter(function(r) { return r; })
-      .sort(function(a, b) { return b - a; });
+      .filter(function(r) { return r; });
+    if (payload.deleteOrphans) delRows = delRows.concat(orphanRows);
+    delRows.sort(function(a, b) { return b - a; });
     delRows.forEach(function(r) {
       const dv = sheet.getRange(r, 1).getValue();
       if (dv) deletedDates.push(typeof dv === 'string' ? dv : Utilities.formatDate(new Date(dv), 'Asia/Seoul', 'yyyy-MM-dd'));

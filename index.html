@@ -855,9 +855,9 @@ import {
   persistentSingleTabManager,
   collection, 
   doc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
+  getDocs,
+  setDoc,
+  updateDoc,
   deleteDoc, 
   query, 
   where,
@@ -970,12 +970,6 @@ function yesterdayStr() { const d = new Date(); d.setDate(d.getDate()-1); return
 
 function getCached(key) { const c = state.cache[key]; if (c && Date.now() - c.ts < CLIENT_CACHE_MS) return c.data; return null; }
 function setCached(key, data) { state.cache[key] = { data, ts: Date.now() }; }
-function invalidateCached(year, month) {
-  delete state.cache['summary_' + year + '_' + month];
-  delete state.cache['expenses_' + year + '_' + month];
-  delete state.cache['yearly_' + year];
-}
-
 function renderLoadError(areaId, msgId, retryKey, errorMsg) {
   const msgEl = document.getElementById(msgId);
   const areaEl = document.getElementById(areaId);
@@ -1001,9 +995,10 @@ async function fetchExpenses(year, month) {
   }
   
   const snap = await getDocs(q);
+  // rowIndex는 반드시 spread 뒤에 — 구버전 문서의 레거시 rowIndex 필드(숫자)가 doc.id를 덮어쓰면 수정/삭제가 엉뚱한 문서를 가리킴
   const data = snap.docs.map(doc => ({
-    rowIndex: doc.id, // Firestore 고유 ID
-    ...doc.data()
+    ...doc.data(),
+    rowIndex: doc.id // Firestore 고유 ID
   }));
   
   data.sort((a, b) => b.date.localeCompare(a.date));
@@ -1063,27 +1058,27 @@ async function onSaveExpense() {
 
   if (!valid) return;
 
+  // createdAt은 신규 기록에만 부여 — 수정 시 원래 생성 시각 보존
   const data = {
     date: dateVal, item: itemVal, category: catVal,
     user: userVal, amount: amountRaw,
-    memo: document.getElementById('expense-memo').value.trim(),
-    createdAt: new Date().toISOString()
+    memo: document.getElementById('expense-memo').value.trim()
   };
 
   setBtnLoading(true);
   try {
     if (state.editingRowIndex) {
-      updateDoc(doc(db, 'expenses', String(state.editingRowIndex)), data);
+      updateDoc(doc(db, 'expenses', String(state.editingRowIndex)), data)
+        .catch(e => console.error('Firestore 수정 실패', e));
     } else {
-      addDoc(collection(db, 'expenses'), data);
-      syncToGoogleSheet(data);
+      // doc()으로 ID를 먼저 생성해야 시트 백업(H열 docId)에 ID가 들어감 — 비면 동기화 진단이 영원히 "추가 필요"로 잡아 시트에 중복 행 누적
+      const newData = { ...data, createdAt: new Date().toISOString() };
+      const ref = doc(collection(db, 'expenses'));
+      setDoc(ref, newData).catch(e => console.error('Firestore 저장 실패', e));
+      syncToGoogleSheet({ ...newData, docId: ref.id });
     }
     _allExpensesCache = null;
-
-    const year = parseInt(dateVal.slice(0, 4), 10), month = parseInt(dateVal.slice(5, 7), 10);
-    invalidateCached(year, month);
-    invalidateCached(state.monthlyYear, state.monthlyMonth);
-    invalidateCached(state.currentYear, state.currentMonth);
+    state.cache = {}; // 30초 클라이언트 캐시 전체 클리어 (yearly_raw_ 포함 — 부분 무효화는 키 누락으로 유령 잔상 발생)
     
     let recent = JSON.parse(localStorage.getItem('recentItems_' + userVal) || '[]');
     recent = recent.filter(i => i !== itemVal);
@@ -1109,12 +1104,11 @@ async function onSaveExpense() {
 
 async function doDeleteExpense(rowIndex, name) {
   try {
-    deleteDoc(doc(db, 'expenses', String(rowIndex)));
+    deleteDoc(doc(db, 'expenses', String(rowIndex)))
+      .catch(e => console.error('Firestore 삭제 실패', e));
     _allExpensesCache = null;
+    state.cache = {}; // 삭제 항목의 연/월을 모르므로 전체 클리어 (검색에서 다른 달 항목 삭제 시 잔상 방지)
 
-    invalidateCached(state.monthlyYear, state.monthlyMonth);
-    invalidateCached(state.currentYear, state.currentMonth);
-    
     loadMonthlyData(); 
     showToast(`'${name}' 내역이 삭제되었습니다.`);
   } catch(e) {
@@ -1346,6 +1340,7 @@ async function loadAnnualData() {
       data = await fetchExpenses(year, null);
       setCached(expKey, data);
     }
+    state._annualRawData = data; // 세금 셀 팝업용 — 30초 TTL 캐시와 달리 만료되지 않음
     const summary = calcYearlySummary(year, data);
     const fixedRes = calcYearlyFixedBreakdown(year, data);
     
@@ -1768,10 +1763,11 @@ function renderAnnualMatrix(months, fixedBreakdown) {
       cell.addEventListener('click', function(e) {
         e.stopPropagation();
         const month = parseInt(this.dataset.month, 10);
-        const rawData = getCached(`yearly_raw_${state.annualYear}`) || [];
+        const rawData = state._annualRawData || getCached(`yearly_raw_${state.annualYear}`) || [];
+        // 셀 합계(calcYearlyFixedBreakdown)와 동일하게 category까지 확인해야 합계와 팝업이 일치
         const entries = rawData.filter(r => {
           const m = parseInt(r.date.slice(5, 7), 10);
-          return m === month && r.item && r.item.includes('세금');
+          return m === month && r.category === '고정비' && r.item && r.item.includes('세금');
         });
         const tooltip = document.getElementById('svg-tooltip');
         if (!entries.length) return;
@@ -2055,7 +2051,8 @@ function renderDatePicker() {
 // ====================================================
 async function getAllFirestoreExpenses() {
   const snap = await getDocs(collection(db, 'expenses'));
-  return snap.docs.map(d => ({ rowIndex: d.id, ...d.data() }));
+  // rowIndex는 반드시 spread 뒤에 (레거시 rowIndex 필드가 doc.id를 덮어쓰는 것 방지)
+  return snap.docs.map(d => ({ ...d.data(), rowIndex: d.id }));
 }
 
 async function getAllSheetsExpenses() {
@@ -2076,8 +2073,11 @@ function itemsDiffer(fb, gs) {
 }
 
 function computeSyncDiff(fbData, gsData) {
-  const fbMap = new Map(fbData.map(e => [e.rowIndex, e]));
-  const gsMap = new Map(gsData.filter(e => e.docId).map(e => [e.docId, e]));
+  // String() 통일 — 숫자/문자 키 불일치 시 같은 항목이 매번 추가+삭제로 잡힘
+  const fbMap = new Map(fbData.map(e => [String(e.rowIndex), e]));
+  const gsMap = new Map(gsData.filter(e => e.docId).map(e => [String(e.docId), e]));
+  // docId 없는 백업 행(구버전 자동 백업의 잔재) — 대응되는 Firestore 문서가 toAdd로 다시 추가되므로 정리 대상
+  const orphanCount = gsData.filter(e => !e.docId).length;
   const toAdd = [], toUpdate = [], toDelete = [];
   for (const [docId, fb] of fbMap) {
     if (!gsMap.has(docId)) toAdd.push(fb);
@@ -2086,7 +2086,7 @@ function computeSyncDiff(fbData, gsData) {
   for (const [docId] of gsMap) {
     if (!fbMap.has(docId)) toDelete.push({ docId });
   }
-  return { toAdd, toUpdate, toDelete };
+  return { toAdd, toUpdate, toDelete, orphanCount };
 }
 
 function setDmgmtStage(stage) {
@@ -2097,7 +2097,8 @@ function setDmgmtStage(stage) {
 
 function renderSyncResult(diff) {
   const { toAdd, toUpdate, toDelete } = diff;
-  const total = toAdd.length + toUpdate.length + toDelete.length;
+  const orphanCount = diff.orphanCount || 0;
+  const total = toAdd.length + toUpdate.length + toDelete.length + orphanCount;
   const summaryEl = document.getElementById('sync-result-summary');
   const detailEl  = document.getElementById('sync-result-detail');
   const applyBtn  = document.getElementById('sync-apply-btn');
@@ -2121,7 +2122,7 @@ function renderSyncResult(diff) {
   summaryEl.innerHTML = [
     statRow('추가 필요', toAdd.length),
     statRow('수정 필요', toUpdate.length),
-    statRow('삭제 필요', toDelete.length)
+    statRow('삭제 필요', toDelete.length + orphanCount)
   ].join('');
 
   const makeSection = (label, items, cls, fmt) => !items.length ? '' :
@@ -2137,7 +2138,10 @@ function renderSyncResult(diff) {
     makeSection('수정될 항목', toUpdate, 'sync-diff-upd',
       e => `↻ ${e.data.date}  ${escHtml(e.data.item)}  ${formatMoney(e.data.amount)}`),
     makeSection('삭제될 항목', toDelete, 'sync-diff-del',
-      e => `− ${e.docId.slice(0, 20)}…`)
+      e => `− ${String(e.docId).slice(0, 20)}…`),
+    orphanCount > 0
+      ? `<div class="sync-diff-section"><div class="sync-diff-label">정리될 백업 행 (${orphanCount}건)</div><div class="sync-diff-item sync-diff-del">− ID 없는 옛 백업 행 — 위 추가 항목으로 다시 채워집니다</div></div>`
+      : ''
   ].join('');
 
   applyBtn.style.display = '';
@@ -2170,7 +2174,7 @@ async function applySmartSync(diff) {
     const res = await fetch(GAS_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'smartSync', token, toAdd: diff.toAdd, toUpdate: diff.toUpdate, toDelete: diff.toDelete }),
+      body: JSON.stringify({ action: 'smartSync', token, toAdd: diff.toAdd, toUpdate: diff.toUpdate, toDelete: diff.toDelete, deleteOrphans: (diff.orphanCount || 0) > 0 }),
       redirect: 'follow'
     });
     const result = await res.json();

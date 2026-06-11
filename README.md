@@ -46,16 +46,20 @@
 ### Firestore `expenses` (원본)
 ```json
 { "date": "2026-06-10", "item": "마트", "category": "식비", "user": "정",
-  "amount": 45000, "memo": "", "createdAt": "...", "rowIndex": 123 }
+  "amount": 45000, "memo": "", "createdAt": "..." }
 ```
 - `user`: `'희'`(남편) / `'정'`(아내) / `'희정'`(공동, **고정비 전용**)
 - 구버전 레코드에 `'남편'`/`'아내'` 잔존 — 프론트에서 자동 호환 처리
+- ⚠️ 구버전(시트 이관) 레코드에 숫자 `rowIndex` 필드 잔존 — 프론트는 항상 `{ ...doc.data(), rowIndex: doc.id }` 순서로 읽어 **doc.id가 레거시 필드를 덮어쓰도록** 해야 함 (반대 순서면 수정/삭제가 엉뚱한 문서를 가리킴)
+- `createdAt`은 신규 기록 시에만 부여, 수정 시 보존
 
 ### Google Sheets `RAW_DATA` (백업)
-| date | item | category | user | amount | memo | created_at |
-|---|---|---|---|---|---|---|
+| date | item | category | user | amount | memo | created_at | docId |
+|---|---|---|---|---|---|---|---|
 
-신규 추가는 자동 백업, 수정·삭제는 **스마트 동기화** 실행 시 반영된다.
+- H열 `docId` = Firestore 문서 ID — 신규 기록 시 프론트가 `doc()`으로 ID를 먼저 만들어 백업에 포함 (docId 없는 행은 동기화 비교 불가 → 중복 누적 원인)
+- 신규 추가는 자동 백업, 수정·삭제는 **스마트 동기화** 실행 시 반영
+- 동기화 실행 시 docId 없는 옛 백업 행은 자동 정리되고, 대응 데이터가 docId와 함께 다시 추가됨
 
 ---
 
