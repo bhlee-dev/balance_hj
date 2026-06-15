@@ -1256,8 +1256,7 @@ window.showTab = function(tabName) {
   if (el) el.classList.add('active');
   state.currentTab = tabName;
 
-  const titles = { home: '가계부', record: '기록', monthly: '월간', annual: '연간' };
-  document.getElementById('header-title').textContent = titles[tabName] || '가계부';
+  // 헤더 제목은 '가계부' 고정 — 현재 위치는 하단 탭으로 표시 (trip·snowball과 통일)
 
   if (tabName === 'home') loadHomeData();
   else if (tabName === 'record') initRecordTab();
@@ -1925,7 +1924,6 @@ function resetForm() {
   updateCategoryForm(); updateUserSeg(); updateDatePills(); updateItemSuggestions();
   document.getElementById('edit-banner').classList.remove('show');
   document.getElementById('save-btn').textContent = '저장하기';
-  document.getElementById('header-title').textContent = '기록';
 }
 
 function fillFormWithExpense(data) {
@@ -1951,7 +1949,6 @@ function fillFormWithExpense(data) {
   updateUserSeg(); updateCategoryForm(); updateDatePills(); updateItemSuggestions();
   document.getElementById('edit-banner').classList.add('show');
   document.getElementById('save-btn').textContent = '수정하기';
-  document.getElementById('header-title').textContent = '내역 수정';
 }
 
 function cancelEditMode() {
