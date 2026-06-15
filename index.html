@@ -357,10 +357,13 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #annual-chart-wrap{padding:0 16px 12px;overflow-x:auto;position:relative}
 #annual-svg{width:100%;height:auto;display:block}
 .annual-bar-g{transition:opacity .25s ease}
-#annual-detail{display:none;align-items:baseline;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding:12px 16px;background:var(--surface-1);border:1px solid var(--border-mid);border-radius:var(--radius-md);font-size:var(--text-micro);color:var(--text-sub);font-variant-numeric:tabular-nums;animation:ovIn .2s ease}
+#annual-detail{display:none;flex-direction:column;gap:10px;margin-top:10px;padding:14px 16px;background:var(--surface-1);border:1px solid var(--border-mid);border-radius:var(--radius-md);font-variant-numeric:tabular-nums;animation:ovIn .2s ease}
 #annual-detail.show{display:flex}
 #annual-detail .ad-month{font-size:var(--text-caption);font-weight:var(--fw-semibold);color:var(--text)}
-#annual-detail b{font-weight:var(--fw-medium);color:var(--text)}
+#annual-detail .ad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+#annual-detail .ad-cell{display:flex;flex-direction:column;gap:3px;min-width:0}
+#annual-detail .ad-lbl{font-size:var(--text-micro);font-weight:var(--fw-regular);color:var(--text-muted)}
+#annual-detail .ad-val{font-size:var(--text-caption);font-weight:var(--fw-medium);color:var(--text)}
 .annual-matrix-wrap{margin:0 0 24px}
 .annual-matrix{width:100%;table-layout:fixed;border-collapse:collapse}
 .annual-matrix th{padding:9px 8px;background:transparent;color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
@@ -1691,9 +1694,11 @@ function selectAnnualBar(bar) {
   const detail = document.getElementById('annual-detail');
   detail.innerHTML =
     `<span class="ad-month">${month}월</span>` +
-    `<span>총 <b>${formatMoney(bar.dataset.total)}</b></span>` +
-    `<span>생활비 <b>${formatMoney(bar.dataset.living)}</b></span>` +
-    `<span>고정비 <b>${formatMoney(bar.dataset.fixed)}</b></span>`;
+    `<div class="ad-grid">` +
+      `<div class="ad-cell"><span class="ad-lbl">총지출</span><span class="ad-val">${formatMoney(bar.dataset.total)}</span></div>` +
+      `<div class="ad-cell"><span class="ad-lbl">생활비</span><span class="ad-val">${formatMoney(bar.dataset.living)}</span></div>` +
+      `<div class="ad-cell"><span class="ad-lbl">고정비</span><span class="ad-val">${formatMoney(bar.dataset.fixed)}</span></div>` +
+    `</div>`;
   detail.classList.add('show');
 }
 
