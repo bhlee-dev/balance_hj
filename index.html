@@ -2018,7 +2018,26 @@ function initBackGuard() {
     if (layer) { layer.close(); setTimeout(sync, 0); }   // 닫고 남은 레이어 있으면 재트랩
   });
 
-  const mo = new MutationObserver(() => sync());
+  // ─── 시트 z-index 동적 스태킹 (trip_hj와 동일 패턴) ───
+  // 오버레이마다 CSS z-index가 제각각이라, 다른 시트 위에 겹쳐 뜨면 가려질 수 있다.
+  // 열린 순서대로 z를 부여해 늦게 연 오버레이가 항상 위로 오게 한다(DOM 순서 무관).
+  // monthly-search-wrap은 인라인 검색바(모달 아님)라 제외.
+  const Z_BASE = 350;
+  const Z_OVERLAYS = ['confirm-overlay','action-sheet-overlay','datepicker-overlay','filter-sheet-overlay','data-mgmt-overlay','app-switcher-overlay'];
+  const _zShown = new Set();
+  let _zSeq = 0;
+  function manageZ() {
+    Z_OVERLAYS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const open = el.classList.contains('show');         // 닫힘 애니메이션(.closing) 중에도 위 유지
+      if (open && !_zShown.has(id))      { _zShown.add(id);    el.style.zIndex = Z_BASE + (++_zSeq); }
+      else if (!open && _zShown.has(id)) { _zShown.delete(id); el.style.zIndex = ''; }
+    });
+    if (_zShown.size === 0) _zSeq = 0;                     // 모두 닫히면 시퀀스 리셋(z 무한증가 방지)
+  }
+
+  const mo = new MutationObserver(() => { manageZ(); sync(); });
   LAYERS.forEach(l => {
     const el = document.getElementById(l.id);
     if (el) mo.observe(el, { attributes: true, attributeFilter: ['class'] });
