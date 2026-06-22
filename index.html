@@ -299,8 +299,7 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 
 /* ════════════════════════════════ DATA MGMT SHEET ═══ */
 #home-summary-card{position:relative}
-#home-sync-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:#9CA3AF;cursor:pointer;padding:4px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:color .15s}
-#home-sync-btn:active{color:#D1D5DB}
+/* removed home-sync-btn */
 #data-mgmt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
 #data-mgmt-overlay.show{display:flex}
 #data-mgmt-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;border:1px solid var(--border-mid);border-bottom:none;padding:8px 16px calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;max-height:85vh;overflow-y:auto;min-height:260px}
@@ -451,9 +450,57 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 /* ══════════════════════════ DATE INPUT NORMALIZE ═══ */
 input[type="date"].form-input{font-size:var(--text-body);text-align:left;-webkit-appearance:none;appearance:none}
 input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
+/* ══════════════════════════ MANAGE OVERLAY (MONOCHROME ZEN) ═══ */
+#header-manage{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:6px;margin:-6px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent;transition:opacity .15s,color .15s}
+#header-manage:active{opacity:.55}
+#manage-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:200;display:none;align-items:flex-end;justify-content:center}
+#manage-overlay.show{display:flex;animation:ovIn .25s ease}
+#manage-overlay.closing{display:flex;animation:ovOut .2s ease forwards}
+#manage-sheet{background:var(--surface-1);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:8px 0 calc(28px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;border:1px solid var(--border-mid);border-bottom:none}
+#manage-overlay.show #manage-sheet{animation:sheetIn .3s cubic-bezier(.32,.72,0,1)}
+#manage-overlay.closing #manage-sheet{animation:sheetOut .2s ease forwards}
+#manage-sheet::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:10px auto 16px}
+.manage-group{margin-bottom:24px}
+.manage-group-title{font-size:var(--text-micro);font-weight:var(--fw-medium);color:var(--text-muted);letter-spacing:var(--ls-wider);text-transform:uppercase;padding:0 24px 8px}
+.manage-item{width:100%;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:var(--text-body);font-weight:var(--fw-regular);font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.manage-item:active{background:var(--surface-2)}
+.manage-item:last-child{border-bottom:none}
+.manage-item-chevron{color:rgba(255,255,255,0.2);font-weight:var(--fw-regular);font-size:18px;font-family:sans-serif}
+.manage-item-sub{font-size:var(--text-caption);color:var(--text-muted);margin-right:8px}
 </style>
 </head>
 <body>
+  <!-- ────── MANAGE (SETTINGS) OVERLAY ────── -->
+  <div id="manage-overlay">
+    <div id="manage-sheet">
+      <div class="manage-group">
+        <div class="manage-group-title">데이터 관리</div>
+        <button class="manage-item" id="manage-sync-btn" type="button">
+          <span>백업 동기화 진단</span>
+          <span class="manage-item-chevron">›</span>
+        </button>
+        <button class="manage-item" id="manage-refresh-btn" type="button">
+          <span>앱 새로고침 / 캐시 정리</span>
+          <span class="manage-item-chevron">›</span>
+        </button>
+      </div>
+      <div class="manage-group">
+        <div class="manage-group-title">가계부 설정</div>
+        <button class="manage-item" type="button" onclick="alert('고정비 및 카테고리 편집 기능은 준비 중입니다.')">
+          <span>분류 기준 및 고정비</span>
+          <span class="manage-item-chevron">›</span>
+        </button>
+      </div>
+      <div class="manage-group">
+        <div class="manage-group-title">앱 정보</div>
+        <div class="manage-item" style="cursor:default">
+          <span>버전 정보</span>
+          <span class="manage-item-sub">v9</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div id="app">
   <div id="offline-bar" role="alert"></div>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -464,15 +511,17 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
       <span id="header-version">v9</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);margin-left:1px;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-    <span id="header-month" class="num"></span>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="header-month" class="num"></span>
+      <button id="header-manage" type="button" aria-label="설정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
   </header>
 
   <main id="main-content">
     <div id="tab-home" class="tab-content">
       <div id="home-summary-card">
-        <button id="home-sync-btn" type="button" aria-label="데이터 동기화">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-        </button>
         <div class="home-month-label" id="home-month-label"></div>
         <div class="home-total num" id="home-total">0원</div>
         <div class="home-pace num" id="home-pace"></div>
@@ -2474,11 +2523,23 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('confirm-cancel-btn').addEventListener('click', () => closeSheetOverlay('confirm-overlay'));
   document.getElementById('confirm-overlay').addEventListener('click', function(e) { if (e.target === this) closeSheetOverlay('confirm-overlay'); });
 
-  // 데이터 관리 모달 (홈 탭 구름 아이콘)
-  document.getElementById('home-sync-btn').addEventListener('click', () => {
-    setDmgmtStage('idle');
-    document.querySelector('#dmgmt-idle .dmgmt-desc').textContent = 'Firebase와 Google Sheets의 데이터를 비교하여 불일치 항목을 찾아냅니다.';
-    document.getElementById('data-mgmt-overlay').classList.add('show');
+  // 설정 바텀시트
+  document.getElementById('header-manage').addEventListener('click', () => {
+    document.getElementById('manage-overlay').classList.add('show');
+  });
+  document.getElementById('manage-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeSheetOverlay('manage-overlay');
+  });
+  document.getElementById('manage-sync-btn').addEventListener('click', () => {
+    closeSheetOverlay('manage-overlay');
+    setTimeout(() => {
+      setDmgmtStage('idle');
+      document.querySelector('#dmgmt-idle .dmgmt-desc').textContent = 'Firebase와 Google Sheets의 데이터를 비교하여 불일치 항목을 찾아냅니다.';
+      document.getElementById('data-mgmt-overlay').classList.add('show');
+    }, 200);
+  });
+  document.getElementById('manage-refresh-btn').addEventListener('click', () => {
+    window.location.reload(true);
   });
   document.getElementById('sync-diagnose-btn').addEventListener('click', runSyncDiagnosis);
   document.getElementById('sync-retry-btn').addEventListener('click', runSyncDiagnosis);
