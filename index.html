@@ -864,7 +864,9 @@ import {
   deleteDoc, 
   query, 
   where,
-  writeBatch
+  writeBatch,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 import { 
@@ -1011,12 +1013,14 @@ async function fetchExpenses(year, month) {
 // ====================================================
 // [ 핵심 2 ] 듀얼 라이트(Dual-Write) 백그라운드 싱크
 // ====================================================
-async function syncToGoogleSheet(expenseData) {
+async function syncToGoogleSheet(action, expenseData, docId) {
   const user = auth.currentUser;
   if (!user) return;
   let token;
   try { token = await user.getIdToken(); } catch(e) { return; }
-  const payload = { action: 'addExpense', token, data: expenseData };
+  const payload = { action: action, token: token };
+  if (expenseData) payload.data = expenseData;
+  if (docId) payload.docId = docId;
 
   fetch(GAS_BACKEND_URL, {
     method: 'POST',
@@ -1026,10 +1030,14 @@ async function syncToGoogleSheet(expenseData) {
   })
   .then(res => res.json())
   .then(res => {
-    if (!res.success) console.warn('[GAS Sync] 구글 시트 백업 실패:', res.error);
+    if (!res.success) {
+      console.warn('[GAS Sync] 구글 시트 백업 실패:', res.error);
+      showToast('시트 백업 지연됨 (수동 동기화 필요)');
+    }
   })
   .catch(err => {
     console.error('[GAS Sync] 구글 시트 백업 중 네트워크 오류:', err);
+    showToast('시트 백업 지연됨 (수동 동기화 필요)');
   });
 }
 
@@ -1073,12 +1081,13 @@ async function onSaveExpense() {
     if (state.editingRowIndex) {
       updateDoc(doc(db, 'expenses', String(state.editingRowIndex)), data)
         .catch(e => console.error('Firestore 수정 실패', e));
+      syncToGoogleSheet('updateExpense', data, String(state.editingRowIndex));
     } else {
       // doc()으로 ID를 먼저 생성해야 시트 백업(H열 docId)에 ID가 들어감 — 비면 동기화 진단이 영원히 "추가 필요"로 잡아 시트에 중복 행 누적
       const newData = { ...data, createdAt: new Date().toISOString() };
       const ref = doc(collection(db, 'expenses'));
       setDoc(ref, newData).catch(e => console.error('Firestore 저장 실패', e));
-      syncToGoogleSheet({ ...newData, docId: ref.id });
+      syncToGoogleSheet('addExpense', { ...newData, docId: ref.id });
     }
     _allExpensesCache = null;
     state.cache = {}; // 30초 클라이언트 캐시 전체 클리어 (yearly_raw_ 포함 — 부분 무효화는 키 누락으로 유령 잔상 발생)
@@ -1109,6 +1118,7 @@ async function doDeleteExpense(rowIndex, name) {
   try {
     deleteDoc(doc(db, 'expenses', String(rowIndex)))
       .catch(e => console.error('Firestore 삭제 실패', e));
+    syncToGoogleSheet('deleteExpense', null, String(rowIndex));
     _allExpensesCache = null;
     state.cache = {}; // 삭제 항목의 연/월을 모르므로 전체 클리어 (검색에서 다른 달 항목 삭제 시 잔상 방지)
 
@@ -1137,12 +1147,25 @@ function setBtnError(msg) {
   showToast(msg || '네트워크 오류가 발생했습니다.');
   setTimeout(() => { btn.textContent = state.editingRowIndex ? '수정하기' : '저장하기'; }, 2000);
 }
-let _toastTimer = null;
+let _toastQueue = [];
+let _isToastShowing = false;
 function showToast(msg) {
+  _toastQueue.push(msg);
+  processToastQueue();
+}
+function processToastQueue() {
+  if (_isToastShowing || _toastQueue.length === 0) return;
+  _isToastShowing = true;
+  const msg = _toastQueue.shift();
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => {
+      _isToastShowing = false;
+      processToastQueue();
+    }, 300);
+  }, 2500);
 }
 function showSaveSuccess(cb) {
   state.isLoading = false;
@@ -1238,11 +1261,22 @@ function calcYearlyFixedBreakdown(year, data) {
   return { success: true, months: Object.values(result), activeItems };
 }
 
-function getAvailableYears() {
+async function getAvailableYears() {
   const current = new Date().getFullYear();
-  const years = [];
-  for (let y = current + 1; y >= 2020; y--) years.push(y);
-  return years;
+  try {
+    const q = query(collection(db, 'expenses'), orderBy('date', 'asc'), limit(1));
+    const snap = await getDocs(q);
+    let minYear = current;
+    if (!snap.empty) {
+      minYear = parseInt(snap.docs[0].data().date.substring(0, 4), 10);
+    }
+    const years = [];
+    for (let y = current + 1; y >= minYear; y--) years.push(y);
+    return years;
+  } catch (e) {
+    console.error('getAvailableYears error', e);
+    return [current + 1, current, current - 1];
+  }
 }
 
 
@@ -1330,7 +1364,7 @@ async function loadAnnualData() {
   const year = state.annualYear;
   document.getElementById('annual-title').textContent = `${year}년`;
   
-  if (state.availableYears.length === 0) state.availableYears = getAvailableYears();
+  if (state.availableYears.length === 0) state.availableYears = await getAvailableYears();
   updateAnnualNavBtns();
 
   const expKey = `yearly_raw_${year}`;
