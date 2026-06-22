@@ -342,8 +342,13 @@ function smartSync(payload) {
     if (lastRow >= 2) {
       const ids = sheet.getRange(2, 8, lastRow - 1, 1).getValues();
       for (let i = 0; i < ids.length; i++) {
-        if (ids[i][0]) idMap[String(ids[i][0])] = i + 2;
-        else orphanRows.push(i + 2);
+        const docId = String(ids[i][0] || '');
+        if (docId) {
+          if (idMap[docId]) orphanRows.push(i + 2); // Duplicate docId -> Treat as orphan to delete
+          else idMap[docId] = i + 2;
+        } else {
+          orphanRows.push(i + 2);
+        }
       }
     }
 

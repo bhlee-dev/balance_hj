@@ -2175,9 +2175,22 @@ function itemsDiffer(fb, gs) {
 function computeSyncDiff(fbData, gsData) {
   // String() 통일 — 숫자/문자 키 불일치 시 같은 항목이 매번 추가+삭제로 잡힘
   const fbMap = new Map(fbData.map(e => [String(e.rowIndex), e]));
-  const gsMap = new Map(gsData.filter(e => e.docId).map(e => [String(e.docId), e]));
-  // docId 없는 백업 행(구버전 자동 백업의 잔재) — 대응되는 Firestore 문서가 toAdd로 다시 추가되므로 정리 대상
-  const orphanCount = gsData.filter(e => !e.docId).length;
+  const gsMap = new Map();
+  let orphanCount = 0;
+
+  gsData.forEach(e => {
+    const docId = String(e.docId || '');
+    if (!docId) {
+      orphanCount++;
+    } else {
+      if (gsMap.has(docId)) {
+        orphanCount++; // 중복 docId 발생 시 고아 데이터로 간주하여 정리
+      } else {
+        gsMap.set(docId, e);
+      }
+    }
+  });
+
   const toAdd = [], toUpdate = [], toDelete = [];
   for (const [docId, fb] of fbMap) {
     if (!gsMap.has(docId)) toAdd.push(fb);
