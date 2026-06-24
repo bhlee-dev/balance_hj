@@ -594,11 +594,30 @@ input[type="date"].form-input::-webkit-date-and-time-value{text-align:left}
             <span class="form-row-label">항목명</span>
             <input class="form-card-input" id="expense-item" type="text" placeholder="직접 입력" maxlength="50" list="item-suggestions" autocomplete="off">
             <select class="form-card-input" id="expense-item-select" style="display:none">
+              <option value="주담대">주담대</option>
               <option value="관리비">관리비</option>
               <option value="도시가스">도시가스</option>
               <option value="수도요금">수도요금</option>
               <option value="세금">세금</option>
             </select>
+          </div>
+          <div id="mortgage-section" style="display:none">
+            <div class="form-row-divider"></div>
+            <div class="form-row">
+              <span class="form-row-label">원금</span>
+              <div style="display:flex;align-items:center;gap:4px;flex:1;justify-content:flex-end">
+                <input class="form-card-input" id="mortgage-principal" type="tel" inputmode="numeric" placeholder="0" style="font-variant-numeric:tabular-nums">
+                <span style="font-size:var(--text-caption);color:var(--text-muted);flex-shrink:0">원</span>
+              </div>
+            </div>
+            <div class="form-row-divider"></div>
+            <div class="form-row">
+              <span class="form-row-label">이자</span>
+              <div style="display:flex;align-items:center;gap:4px;flex:1;justify-content:flex-end">
+                <input class="form-card-input" id="mortgage-interest" type="tel" inputmode="numeric" placeholder="0" style="font-variant-numeric:tabular-nums">
+                <span style="font-size:var(--text-caption);color:var(--text-muted);flex-shrink:0">원</span>
+              </div>
+            </div>
           </div>
           <datalist id="item-suggestions"></datalist>
           <div class="form-error" id="category-error" style="padding:0 16px 8px;margin:0"></div>
@@ -960,8 +979,8 @@ const CATEGORY_EMOJI = {
   '식비':'🍽️', '교통':'🚗', '생활':'🏠', '의료':'🛍️', '여가':'⛰️'
 };
 const CATEGORIES = ['식비/주류','교통/차량','주거/생활','쇼핑/의료','취미/여가','여행/숙박','고정비'];
-const FIXED_BREAKDOWN_ITEMS = ['관리비', '도시가스', '수도요금', '전기요금', '세금'];
-const MONTHLY_FIXED_ITEMS   = ['관리비', '도시가스', '수도요금', '세금'];
+const FIXED_BREAKDOWN_ITEMS = ['주담대', '관리비', '도시가스', '수도요금', '전기요금', '세금'];
+const MONTHLY_FIXED_ITEMS   = ['주담대', '관리비', '도시가스', '수도요금', '세금'];
 const DAY_KO = ['일','월','화','수','목','금','토'];
 const CLIENT_CACHE_MS = 30000;
 
@@ -1119,10 +1138,18 @@ async function onSaveExpense() {
   if (!valid) return;
 
   // createdAt은 신규 기록에만 부여 — 수정 시 원래 생성 시각 보존
+  let memoVal = document.getElementById('expense-memo').value.trim();
+  if (itemVal === '주담대') {
+    const pRaw = parseMoney(document.getElementById('mortgage-principal').value);
+    const iRaw = parseMoney(document.getElementById('mortgage-interest').value);
+    const prefix = `원금: ${pRaw.toLocaleString('ko-KR')}원 / 이자: ${iRaw.toLocaleString('ko-KR')}원`;
+    memoVal = memoVal ? `${prefix}\n${memoVal}` : prefix;
+  }
+
   const data = {
     date: dateVal, item: itemVal, category: catVal,
     user: userVal, amount: amountRaw,
-    memo: document.getElementById('expense-memo').value.trim()
+    memo: memoVal
   };
 
   setBtnLoading(true);
@@ -1996,6 +2023,11 @@ function resetForm() {
   document.getElementById('expense-amount').value = '';
   document.getElementById('expense-memo').value = '';
   document.getElementById('memo-count').textContent = '0';
+  document.getElementById('mortgage-section').style.display = 'none';
+  document.getElementById('expense-amount').readOnly = false;
+  document.getElementById('expense-amount').style.color = '';
+  document.getElementById('mortgage-principal').value = '';
+  document.getElementById('mortgage-interest').value = '';
   state.categoryManuallySet = false;
   const lastCat = localStorage.getItem('lastCategory_' + state.selectedUser);
   if (lastCat) {
@@ -2010,6 +2042,7 @@ function resetForm() {
 }
 
 function fillFormWithExpense(data) {
+  state.returnTab = state.currentTab;
   document.getElementById('expense-date').value = data.date || todayStr();
   state.selectedUser = data.user || '희';
   const cat = data.category || null;
@@ -2026,9 +2059,32 @@ function fillFormWithExpense(data) {
   } else {
     sel.value = '관리비'; document.getElementById('expense-item').value = editItem;
   }
+  
+  let memoText = data.memo || '';
+  if (editItem === '주담대') {
+    document.getElementById('mortgage-section').style.display = 'block';
+    document.getElementById('expense-amount').readOnly = true;
+    document.getElementById('expense-amount').style.color = 'var(--text-muted)';
+    const match = memoText.match(/원금: ([\d,]+)원 \/ 이자: ([\d,]+)원/);
+    if (match) {
+      document.getElementById('mortgage-principal').value = match[1];
+      document.getElementById('mortgage-interest').value = match[2];
+      memoText = memoText.replace(match[0], '').replace(/^\n+/, '').trim();
+    } else {
+      document.getElementById('mortgage-principal').value = '';
+      document.getElementById('mortgage-interest').value = '';
+    }
+  } else {
+    document.getElementById('mortgage-section').style.display = 'none';
+    document.getElementById('expense-amount').readOnly = false;
+    document.getElementById('expense-amount').style.color = '';
+    document.getElementById('mortgage-principal').value = '';
+    document.getElementById('mortgage-interest').value = '';
+  }
+
   document.getElementById('expense-amount').value = data.amount > 0 ? data.amount.toLocaleString('ko-KR') : '';
-  document.getElementById('expense-memo').value = data.memo || '';
-  document.getElementById('memo-count').textContent = (data.memo || '').length;
+  document.getElementById('expense-memo').value = memoText;
+  document.getElementById('memo-count').textContent = memoText.length;
   updateUserSeg(); updateCategoryForm(); updateDatePills(); updateItemSuggestions();
   document.getElementById('edit-banner').classList.add('show');
   document.getElementById('save-btn').textContent = '수정하기';
@@ -2380,7 +2436,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('expense-date').value = todayStr();
 
   // 탭 네비게이션
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', function() { window.showTab(this.dataset.tab); }));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', function() {
+    if (state.editingRowIndex) {
+      state.editingRowIndex = null;
+      state.categoryManuallySet = false;
+      state.returnTab = null;
+      resetForm();
+    }
+    window.showTab(this.dataset.tab);
+  }));
 
   // 사용자 Segment Control
   document.querySelectorAll('#seg-user .seg-btn').forEach(btn => {
@@ -2436,7 +2500,29 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('expense-memo').addEventListener('input', function() { document.getElementById('memo-count').textContent = this.value.length; });
 
   // 세부 항목 세팅
-  document.getElementById('expense-item-select').addEventListener('change', function() { clearError('item-error', [this, document.getElementById('expense-item')]); updateTaxChips(); });
+  document.getElementById('expense-item-select').addEventListener('change', function() { 
+    clearError('item-error', [this, document.getElementById('expense-item')]); 
+    updateTaxChips(); 
+    const isMortgage = this.value === '주담대';
+    document.getElementById('mortgage-section').style.display = isMortgage ? 'block' : 'none';
+    const amountEl = document.getElementById('expense-amount');
+    amountEl.readOnly = isMortgage;
+    amountEl.style.color = isMortgage ? 'var(--text-muted)' : '';
+    if (!isMortgage) {
+      document.getElementById('mortgage-principal').value = '';
+      document.getElementById('mortgage-interest').value = '';
+    }
+  });
+  ['mortgage-principal', 'mortgage-interest'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+      const raw = parseMoney(this.value);
+      this.value = raw > 0 ? raw.toLocaleString('ko-KR') : '';
+      const p = parseMoney(document.getElementById('mortgage-principal').value);
+      const i = parseMoney(document.getElementById('mortgage-interest').value);
+      const total = p + i;
+      document.getElementById('expense-amount').value = total > 0 ? total.toLocaleString('ko-KR') : '';
+    });
+  });
   document.getElementById('tax-chips-row').addEventListener('click', function(e) {
     const btn = e.target.closest('[data-tax]'); if (!btn) return;
     const memo = document.getElementById('expense-memo'); memo.value = btn.dataset.tax;
