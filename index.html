@@ -363,12 +363,12 @@ input[type="date"].form-card-input{-webkit-appearance:none;appearance:none}
 #annual-detail .ad-cell{display:flex;flex-direction:column;gap:3px;min-width:0}
 #annual-detail .ad-lbl{font-size:var(--text-micro);font-weight:var(--fw-regular);color:var(--text-muted)}
 #annual-detail .ad-val{font-size:var(--text-caption);font-weight:var(--fw-medium);color:var(--text)}
-.annual-matrix-wrap{margin:0 0 24px}
-.annual-matrix{width:100%;table-layout:fixed;border-collapse:collapse}
-.annual-matrix th{padding:9px 8px;background:transparent;color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right}
+.annual-matrix-wrap{margin:0 0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.annual-matrix{width:100%;min-width:max-content;table-layout:auto;border-collapse:collapse}
+.annual-matrix th{padding:9px 8px;background:transparent;color:#8E8E93;font-size:var(--text-micro);font-weight:var(--fw-medium);letter-spacing:var(--ls-wide);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;white-space:nowrap}
 .annual-matrix th:first-child{text-align:left;padding-left:16px}
 .annual-matrix th:last-child{padding-right:16px}
-.annual-matrix td{padding:12px 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-sub);font-size:var(--text-micro);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
+.annual-matrix td{padding:12px 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-sub);font-size:var(--text-micro);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug);white-space:nowrap}
 .annual-matrix td:first-child{text-align:left;color:var(--text-muted);padding-left:16px}
 .annual-matrix td:last-child{padding-right:16px}
 .annual-matrix td.amount-zero{color:rgba(245,245,247,0.16)}
