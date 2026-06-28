@@ -1326,7 +1326,16 @@ function calcYearlyFixedBreakdown(year, data) {
     if (m < 1 || m > 12) return;
     const amount = Number(row.amount) || 0;
     FIXED_BREAKDOWN_ITEMS.forEach(name => {
-      if (row.item && row.item.includes(name)) result[m][name] += amount;
+      if (row.item && row.item.includes(name)) {
+        if (name === '주담대') {
+          const match = (row.memo || '').match(/이자: ([\d,]+)원/);
+          if (match) {
+            result[m][name] += parseMoney(match[1]);
+          }
+        } else {
+          result[m][name] += amount;
+        }
+      }
     });
   });
 
@@ -1848,7 +1857,7 @@ function renderAnnualMatrix(months, fixedBreakdown) {
   let html, footHtml;
   if (state.annualView === 'detail') {
     const activeItems = (fixedBreakdown && fixedBreakdown.activeItems) || FIXED_BREAKDOWN_ITEMS;
-    head.innerHTML = '<th>월</th>' + activeItems.map(n => `<th>${n}</th>`).join('');
+    head.innerHTML = '<th>월</th>' + activeItems.map(n => `<th>${n === '주담대' ? '주담대(이자)' : n}</th>`).join('');
     const totFixed = {};
     activeItems.forEach(n => totFixed[n] = 0);
 
