@@ -1617,7 +1617,10 @@ function renderMonthlyFixedBreakdown(expenses) {
       ? `<div><span class="fixed-breakdown-name">${escHtml(name)}</span>${memos.map(m => `<div class="fixed-breakdown-subtag">↳ ${escHtml(m)}</div>`).join('')}</div>`
       : `<span class="fixed-breakdown-name">${escHtml(name)}</span>`;
 
-    return `<div class="fixed-breakdown-item ${paid ? '' : 'clickable'}" ${paid ? '' : `onclick="window.quickRecordFixed('${name}')"`} ${memos.length ? 'style="align-items:flex-start"' : ''}>
+    const rowData = paid && matching.length > 0 ? `data-row="${matching[0].rowIndex}" data-name="${escHtml(name)}"` : '';
+    const clickHandler = paid ? `onclick="window.openActionSheet(this)"` : `onclick="window.quickRecordFixed('${name}')"`;
+
+    return `<div class="fixed-breakdown-item clickable" ${rowData} ${clickHandler} ${memos.length ? 'style="align-items:flex-start"' : ''}>
       ${nameHtml}<span class="fixed-breakdown-amount ${paid ? '' : 'unpaid'}">${paid ? formatMoney(total) : '미결제 ›'}</span>
     </div>`;
   }).join('');
