@@ -2845,5 +2845,88 @@ document.getElementById('as-trip-btn').addEventListener('click', () => {
   window.location.href = 'https://trip-hj.web.app';
 });
 </script>
+<!-- Swipe-to-dismiss Script -->
+<script>
+function setupSwipeToDismiss() {
+  const overlays = document.querySelectorAll('[id$="-overlay"], .sheet-overlay');
+  overlays.forEach(overlay => {
+    const sheet = overlay.querySelector('[id$="-sheet"], .sheet-box, .bottom-sheet');
+    if (!sheet) return;
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let isAtTop = true;
+
+    sheet.addEventListener('touchstart', (e) => {
+      let scrollable = e.target;
+      while (scrollable && scrollable !== sheet) {
+        const style = window.getComputedStyle(scrollable);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && scrollable.scrollHeight > scrollable.clientHeight) {
+          break;
+        }
+        scrollable = scrollable.parentElement;
+      }
+      if (!scrollable || scrollable === sheet) {
+        const style = window.getComputedStyle(sheet);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && sheet.scrollHeight > sheet.clientHeight) {
+          scrollable = sheet;
+        } else {
+          scrollable = null;
+        }
+      }
+      
+      isAtTop = scrollable ? scrollable.scrollTop <= 0 : true;
+      if (!isAtTop) return;
+      
+      startY = e.touches[0].clientY;
+      currentY = startY;
+      isDragging = true;
+      sheet.style.transition = 'none';
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (e) => {
+      if (!isDragging || !isAtTop) return;
+      currentY = e.touches[0].clientY;
+      const diffY = currentY - startY;
+
+      if (diffY > 0) {
+        if (e.cancelable) e.preventDefault();
+        sheet.style.transform = `translateY(${diffY}px)`;
+      } else {
+        isDragging = false;
+        sheet.style.transform = '';
+      }
+    }, { passive: false });
+
+    sheet.addEventListener('touchend', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      sheet.style.transition = 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)';
+      
+      const diffY = currentY - startY;
+      if (diffY > 80) {
+        sheet.style.transform = `translateY(100%)`;
+        setTimeout(() => {
+          if (typeof closeSheetOverlay === 'function') {
+            closeSheetOverlay(overlay.id);
+          } else if (typeof closeSheet === 'function') {
+            closeSheet(overlay.id);
+          } else {
+            overlay.classList.remove('show');
+          }
+          setTimeout(() => sheet.style.transform = '', 50);
+        }, 250);
+      } else {
+        sheet.style.transform = '';
+      }
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', setupSwipeToDismiss);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setupSwipeToDismiss();
+}
+</script>
 </body>
 </html>
